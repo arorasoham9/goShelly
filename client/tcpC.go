@@ -6,30 +6,32 @@ import (
 	"net"
 	"os"
 	"strings"
-	// "crypto/tls"
-    // "crypto/x509"
+	"crypto/tls"
+    "crypto/x509"
+	"log"
 )
 
-func Dial(CONNECT string) net.Conn {
-	c, err := net.Dial("tcp", CONNECT)
+func Dial(CONNECT string, config tls.Config) net.Conn {
+	c, err := tls.Dial("tcp", CONNECT, &config)
 	if err != nil {
 		fmt.Println(err)
 		return nil
 	}
 	return c
 }
+
 func execCommand(command string, length int32){
 
 }
 
-func loadCertificate(config ) {
-	cert, err := tls.LoadX509KeyPair("certs/server.pem", "certs/server.key")
-    if err != nil {
-        log.Fatalf("server: loadkeys: %s", err)
-    }
-    config := tls.Config{Certificates: []tls.Certificate{cert}}
-    config.Rand = rand.Reader
-}
+// func loadCertificate(config ) {
+// 	cert, err := tls.LoadX509KeyPair("certs/server.pem", "certs/server.key")
+//     if err != nil {
+//         log.Fatalf("server: loadkeys: %s", err)
+//     }
+//     config := tls.Config{Certificates: []tls.Certificate{cert}}
+//     config.Rand = rand.Reader
+// }
 
 func main() {
 	arguments := os.Args
@@ -37,8 +39,14 @@ func main() {
 		fmt.Println("Please provide host:port")
 		return
 	}
+	cert, err := tls.LoadX509KeyPair("certs/client.pem", "certs/client.key")
+    if err != nil {
+        log.Fatalf("server: loadkeys: %s", err)
+    }
+    config := tls.Config{Certificates: []tls.Certificate{cert}, InsecureSkipVerify: true}
+
 	CONNECT := arguments[1]
-	c := Dial(CONNECT)
+	c := Dial(CONNECT, config)
 	if c == nil {
 		os.Exit(1)
 	}
