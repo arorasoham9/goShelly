@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"net"
 	"os"
 	"strings"
 	"time"
@@ -18,11 +17,6 @@ func handleErr(err error) {
 	}
 }
 
-
-func certConfig(){
-
-}
-	
 
 func main() {
 	arguments := os.Args
