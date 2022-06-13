@@ -39,6 +39,7 @@ func main() {
 
 
 	reader := bufio.NewReader(conn)
+	
 	for {
 		text, _ := reader.ReadString('\n')
 		fmt.Printf(strings.Split(strings.TrimSpace(string(text)), "\n")[0] + "\n")

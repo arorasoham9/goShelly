@@ -48,8 +48,6 @@ func main() {
 		}
 		go handleClient(conn, listener)
 		fmt.Print("returning f call\n")
-
-		
 	}
 }
 
@@ -75,23 +73,4 @@ func handleClient(conn net.Conn, l net.Listener) {
 			return
 		}
 	}
-
-	// buf := make([]byte, 512)
-	// for {
-	//     log.Print("server: conn: waiting")
-	//     n, err := conn.Read(buf)
-
-	//     log.Printf("server: conn: echo %q\n", string(buf[:n]))
-	//     n, err = conn.Write(buf[:n])
-
-	//     n, err = conn.Write(buf[:n])
-	//     log.Printf("server: conn: wrote %d bytes", n)
-
-	//     if err != nil {
-	//         log.Printf("server: write: %s", err)
-	//         break
-	//     }
-	// }
-	// log.Println("server: conn: closed")
-
 }
