@@ -27,9 +27,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("Server Listen: %s", err)
 	}
-
-	log.Print("Server listening on port: ", arguments[1])
 	for {
+		log.Print("Server listening on port: ", arguments[1])
+	
 		conn, err := listener.Accept()
 		if err != nil {
 			log.Printf("Client accept error: %s", err)
@@ -51,7 +51,7 @@ func main() {
 }
 
 func handleClient(conn net.Conn, l net.Listener) {
-	fmt.Println("Handling client now")
+	log.Println("Handling Client.")
 	defer conn.Close()
 	reader := bufio.NewReader(os.Stdin)
 
@@ -61,13 +61,15 @@ func handleClient(conn net.Conn, l net.Listener) {
 			if err != nil {
 				log.Printf("Stdin read error: %s", err)
 			}
+			l.Close()
+			conn.Close()
 			break
 		}
 		fmt.Fprintf(conn, text+"\n")
 		if strings.TrimSpace(string(text)) == "Stop" || strings.TrimSpace(string(text)) == "exit" {
 			fmt.Println("Disconnecting Client: ", strings.Split(conn.RemoteAddr().String(), ":")[0])
-			l.Close()
-			break
+			conn.Close()
+			return 
 		}
 	}
 
