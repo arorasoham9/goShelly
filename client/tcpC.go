@@ -46,6 +46,5 @@ func main() {
 			fmt.Println("Disconnected from Server")
 			return
 		}
-
 	}
 }
