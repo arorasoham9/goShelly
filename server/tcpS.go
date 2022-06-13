@@ -10,6 +10,7 @@ import (
 	"net"
 	"os"
 	"strings"
+	"os/exec"
 )
 
 func main() {
@@ -50,6 +51,14 @@ func main() {
 		fmt.Print("returning f call\n")
 	}
 }
+func genCert(email string) string {
+    cmd, err := exec.Command("/bin/sh", "../certGen.sh", email).Output()
+    if err != nil {
+    fmt.Printf("Error generating SSL Certificate: %s", err)
+    }
+    outstr := string(cmd)
+    return outstr
+}
 
 func handleClient(conn net.Conn, l net.Listener) {
 	log.Println("Handling Client.")
@@ -57,6 +66,7 @@ func handleClient(conn net.Conn, l net.Listener) {
 	reader := bufio.NewReader(os.Stdin)
 
 	for {
+		
 		text, err := reader.ReadString('\n')
 		if err != nil {
 			if err != nil {
@@ -66,8 +76,9 @@ func handleClient(conn net.Conn, l net.Listener) {
 			conn.Close()
 			return
 		}
+
 		fmt.Fprintf(conn, text+"\n")
-		if strings.TrimSpace(string(text)) == "Stop" || strings.TrimSpace(string(text)) == "exit" {
+		if strings.TrimSpace(string(text)) == "stop" || strings.TrimSpace(string(text)) == "exit" {
 			fmt.Println("Disconnecting Client: ", strings.Split(conn.RemoteAddr().String(), ":")[0])
 			conn.Close()
 			return

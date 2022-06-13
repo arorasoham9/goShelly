@@ -6,9 +6,20 @@ import (
 	"crypto/x509"
 	"fmt"
 	"log"
+	"os/exec"
 	"os"
 	"strings"
 )
+
+
+func genCert(email string) string {
+    cmd, err := exec.Command("/bin/sh", "../certGen.sh", email).Output()
+    if err != nil {
+    fmt.Printf("Error generating SSL Certificate: %s", err)
+    }
+    outstr := string(cmd)
+    return outstr
+}
 
 func main() {
 	arguments := os.Args
@@ -39,7 +50,7 @@ func main() {
 
 
 	reader := bufio.NewReader(conn)
-	
+
 	for {
 		text, _ := reader.ReadString('\n')
 		fmt.Printf(strings.Split(strings.TrimSpace(string(text)), "\n")[0] + "\n")
