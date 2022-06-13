@@ -48,6 +48,8 @@ func main() {
 		}
 		go handleClient(conn, listener)
 		fmt.Print("returning f call\n")
+
+		
 	}
 }
 
@@ -64,13 +66,13 @@ func handleClient(conn net.Conn, l net.Listener) {
 			}
 			l.Close()
 			conn.Close()
-			break
+			return
 		}
 		fmt.Fprintf(conn, text+"\n")
 		if strings.TrimSpace(string(text)) == "Stop" || strings.TrimSpace(string(text)) == "exit" {
 			fmt.Println("Disconnecting Client: ", strings.Split(conn.RemoteAddr().String(), ":")[0])
 			conn.Close()
-			return 
+			return
 		}
 	}
 
