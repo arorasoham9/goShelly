@@ -1,60 +1,90 @@
 package main
 
 import (
+	"crypto/rand"
+	"crypto/tls"
+	"crypto/x509"
+	"log"
+	"net"
+	"strings"
+	"os"
 	"bufio"
 	"fmt"
-	"os"
-	"strings"
-	"time"
-	"crypto/tls"
-	"log"
 )
 
-func handleErr(err error) {
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-}
-
-
 func main() {
-	arguments := os.Args
-	if len(arguments) == 1 {
-		fmt.Println("Please provide port number")
-		return
-	}
 
-	cert, err := tls.LoadX509KeyPair("certs/server.pem", "certs/server.key")
+	arguments := os.Args
+	
+
+    cert, err := tls.LoadX509KeyPair("certs/server.pem", "certs/server.key")
     if err != nil {
         log.Fatalf("server: loadkeys: %s", err)
     }
     config := tls.Config{Certificates: []tls.Certificate{cert}}
+    config.Rand = rand.Reader
+    service := "0.0.0.0:" + arguments[1]
+    listener, err := tls.Listen("tcp", service, &config)
+    if err != nil {
+        log.Fatalf("Server Listen: %s", err)
+    }
 
+    log.Print("Server listening on port: ", arguments[1])
+    for {
+        conn, err := listener.Accept()
+        if err != nil {
+            log.Printf("Client accept error: %s", err)
+            break
+        }
+        defer conn.Close()
+        log.Printf("Client accepted: %s", conn.RemoteAddr())
+        tlscon, ok := conn.(*tls.Conn)
+        if ok {
+            log.Print("ok=true")
+            state := tlscon.ConnectionState()
+            for _, v := range state.PeerCertificates {
+                log.Print(x509.MarshalPKIXPublicKey(v.PublicKey))
+            }
+        }
+        go handleClient(conn)
+    }
+}
+
+func handleClient(conn net.Conn, l net.Listener) {
+    defer conn.Close()
 	reader := bufio.NewReader(os.Stdin)
-	PORT := ":" + arguments[1]
+
 	for {
-		fmt.Print("Listening for incoming connections...\n")
-		l, err := tls.Listen("tcp", PORT, &config)
-		handleErr(err)
-		defer l.Close()
-
-		c, err := l.Accept()
-		handleErr(err)
-		fmt.Println("Connected to Client: ", strings.Split(c.RemoteAddr().String(), ":")[0])
-		// reader := bufio.NewReader(os.Stdin)
-		for {
-			
-			text, _ := reader.ReadString('\n')
-			fmt.Fprintf(c, text+"\n")
-			if strings.TrimSpace(string(text)) == "Stop" || strings.TrimSpace(string(text)) == "exit" {
-				fmt.Println("Disconnecting Client: ", strings.Split(c.RemoteAddr().String(), ":")[0])
-				l.Close()
-				break
-			}
+		text, err := reader.ReadString('\n')
+		if err != nil {
+            if err != nil {
+                log.Printf("Stdin read error: %s", err)
+            }
+            break
+        }
+		fmt.Fprintf(conn, text+"\n")
+		if strings.TrimSpace(string(text)) == "Stop" || strings.TrimSpace(string(text)) == "exit" {
+			fmt.Println("Disconnecting Client: ", strings.Split(conn.RemoteAddr().String(), ":")[0])
+			l.Close()
+			break
 		}
-		time.Sleep(time.Second * 5)
-
 	}
+    // buf := make([]byte, 512)
+    // for {
+    //     log.Print("server: conn: waiting")
+    //     n, err := conn.Read(buf)
+        
+    //     log.Printf("server: conn: echo %q\n", string(buf[:n]))
+    //     n, err = conn.Write(buf[:n])
+
+    //     n, err = conn.Write(buf[:n])
+    //     log.Printf("server: conn: wrote %d bytes", n)
+
+    //     if err != nil {
+    //         log.Printf("server: write: %s", err)
+    //         break
+    //     }
+    // }
+    // log.Println("server: conn: closed")
 
 }
