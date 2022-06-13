@@ -51,6 +51,7 @@ func main() {
 }
 
 func handleClient(conn net.Conn, l net.Listener) {
+	fmt.Println("Handling client now")
 	defer conn.Close()
 	reader := bufio.NewReader(os.Stdin)
 
