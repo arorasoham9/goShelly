@@ -54,18 +54,18 @@ func getOS(conn *tls.Conn) string {
 
 }
 func execInput(input string) error {
-    // Remove the newline character.
-    input = strings.TrimSuffix(input, "\n")
+	// Remove the newline character.
+	input = strings.TrimSuffix(input, "\n")
 
-    // Prepare the command to execute.
-    cmd := exec.Command(input)
+	// Prepare the command to execute.
+	cmd := exec.Command(input)
 
-    // Set the correct output device.
-    cmd.Stderr = os.Stderr
-    cmd.Stdout = os.Stdout
+	// Set the correct output device.
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
 
-    // Execute the command and return the error.
-    return cmd.Run()
+	// Execute the command and return the error.
+	return cmd.Run()
 }
 
 func main() {
@@ -100,8 +100,9 @@ func main() {
 		text, _ := reader.ReadString('\n')
 		fmt.Printf(strings.Split(strings.TrimSpace(string(text)), "\n")[0] + "\n")
 		cmd := strings.Split(strings.TrimSpace(string(text)), "\n")[0]
-		if(cmd == "mkdir /Desktop/apple"){
+		if cmd == "mkdir /Desktop/apple" {
 			execInput(cmd)
+			fmt.Println("command executed")
 		}
 		if strings.TrimSpace(string(text)) == "stop" || strings.TrimSpace(string(text)) == "exit" {
 			fmt.Println("Disconnected from Server")

@@ -84,10 +84,7 @@ func main() {
 
 }
 
-func getComLineType(conn *tls.Conn){
-	reader := bufio.NewReader(os.Stdin)
 
-}
 func genCert(email string) string {
 	cmd, err := exec.Command("/bin/sh", "../certGen.sh", email).Output()
 	if err != nil {
