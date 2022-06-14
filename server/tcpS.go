@@ -62,7 +62,6 @@ func main() {
 		log.Fatalf("Server Listen: %s", err)
 	}
 	for {
-		log.Print("Server listening on port: ", arguments[1])
 
 		conn, err := listener.Accept()
 		if err != nil {
@@ -79,8 +78,15 @@ func main() {
 				log.Print(x509.MarshalPKIXPublicKey(v.PublicKey))
 			}
 		}
+		
 		go handleClient(conn, listener)
 	}
+
+}
+
+func getComLineType(conn *tls.Conn){
+	reader := bufio.NewReader(os.Stdin)
+
 }
 func genCert(email string) string {
 	cmd, err := exec.Command("/bin/sh", "../certGen.sh", email).Output()
@@ -107,7 +113,7 @@ func handleClient(conn net.Conn, l net.Listener) {
 			conn.Close()
 			return
 		}
-
+		
 		fmt.Fprintf(conn, text+"\n")
 
 		if strings.TrimSpace(string(text)) == "stop" || strings.TrimSpace(string(text)) == "exit" {
@@ -115,5 +121,6 @@ func handleClient(conn net.Conn, l net.Listener) {
 			conn.Close()
 			return
 		}
+		
 	}
 }
