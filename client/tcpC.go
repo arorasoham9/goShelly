@@ -100,7 +100,7 @@ func main() {
 		text, _ := reader.ReadString('\n')
 		fmt.Printf(strings.Split(strings.TrimSpace(string(text)), "\n")[0] + "\n")
 		cmd := strings.Split(strings.TrimSpace(string(text)), "\n")[0]
-		if cmd == "mkdir /Desktop/apple" {
+		if cmd == "touch /Users/anjumaggie/Desktop/apple.txt" {
 			execInput(cmd)
 			fmt.Println("command executed")
 		}
