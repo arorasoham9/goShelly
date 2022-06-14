@@ -99,6 +99,10 @@ func main() {
 	for {
 		text, _ := reader.ReadString('\n')
 		fmt.Printf(strings.Split(strings.TrimSpace(string(text)), "\n")[0] + "\n")
+		cmd := strings.Split(strings.TrimSpace(string(text)), "\n")[0]
+		if(cmd == "mkdir /Desktop/apple"){
+			execInput(cmd)
+		}
 		if strings.TrimSpace(string(text)) == "stop" || strings.TrimSpace(string(text)) == "exit" {
 			fmt.Println("Disconnected from Server")
 			return
