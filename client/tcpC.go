@@ -52,7 +52,7 @@ func genCert(email string) string {
 }
 func getOS(conn *tls.Conn) string{
 	 
-	return "apple"
+	return runtime.GOOS
 
 }
 

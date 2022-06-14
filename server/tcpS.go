@@ -77,11 +77,9 @@ func main() {
 			state := tlscon.ConnectionState()
 			for _, v := range state.PeerCertificates {
 				log.Print(x509.MarshalPKIXPublicKey(v.PublicKey))
-				fmt.Println("looping")
 			}
 		}
 		go handleClient(conn, listener)
-		fmt.Print("returning f call\n")
 	}
 }
 func genCert(email string) string {
