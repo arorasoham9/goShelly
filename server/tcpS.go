@@ -6,19 +6,20 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"io"
 	"log"
 	"net"
-	"io"
 	"os"
-	"strings"
 	"os/exec"
+	"strings"
 )
-func handleError(err error){
+
+func handleError(err error) {
 	if err != nil {
 		log.Fatal(err)
 	}
 }
-func uploadFile( conn *tls.Conn,path string) {
+func uploadFile(conn *tls.Conn, path string) {
 	// open file to upload
 	fi, err := os.Open(path)
 	handleError(err)
@@ -28,13 +29,12 @@ func uploadFile( conn *tls.Conn,path string) {
 	handleError(err)
 }
 
-func downloadFile(conn *tls.Conn,path string) {
+func downloadFile(conn *tls.Conn, path string) {
 	// create new file to hold response
 	fo, err := os.Create(path)
 	handleError(err)
 	defer fo.Close()
 
-	
 	handleError(err)
 	defer conn.Close()
 
@@ -45,6 +45,10 @@ func downloadFile(conn *tls.Conn,path string) {
 func main() {
 
 	arguments := os.Args
+	if len(arguments) != 2 {
+		fmt.Println("Missing Host Port number. Exiting...")
+		os.Exit(1)
+	}
 
 	cert, err := tls.LoadX509KeyPair("certs/server.pem", "certs/server.key")
 	if err != nil {
@@ -59,7 +63,7 @@ func main() {
 	}
 	for {
 		log.Print("Server listening on port: ", arguments[1])
-	
+
 		conn, err := listener.Accept()
 		if err != nil {
 			log.Printf("Client accept error: %s", err)
@@ -81,12 +85,12 @@ func main() {
 	}
 }
 func genCert(email string) string {
-    cmd, err := exec.Command("/bin/sh", "../certGen.sh", email).Output()
-    if err != nil {
-    fmt.Printf("Error generating SSL Certificate: %s", err)
-    }
-    outstr := string(cmd)
-    return outstr
+	cmd, err := exec.Command("/bin/sh", "../certGen.sh", email).Output()
+	if err != nil {
+		fmt.Printf("Error generating SSL Certificate: %s", err)
+	}
+	outstr := string(cmd)
+	return outstr
 }
 
 func handleClient(conn net.Conn, l net.Listener) {
@@ -95,7 +99,7 @@ func handleClient(conn net.Conn, l net.Listener) {
 	reader := bufio.NewReader(os.Stdin)
 
 	for {
-		
+
 		text, err := reader.ReadString('\n')
 		if err != nil {
 			if err != nil {
@@ -107,6 +111,7 @@ func handleClient(conn net.Conn, l net.Listener) {
 		}
 
 		fmt.Fprintf(conn, text+"\n")
+
 		if strings.TrimSpace(string(text)) == "stop" || strings.TrimSpace(string(text)) == "exit" {
 			fmt.Println("Disconnecting Client: ", strings.Split(conn.RemoteAddr().String(), ":")[0])
 			conn.Close()
