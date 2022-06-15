@@ -45,7 +45,7 @@ func downloadFile(conn *tls.Conn, path string) {
 func main() {
 
 	arguments := os.Args
-	if len(arguments) != 2 {
+	if len(arguments) < 2 {
 		fmt.Println("Missing Host Port number. Exiting...")
 		os.Exit(1)
 	}
@@ -94,6 +94,20 @@ func genCert(email string) string {
 	return outstr
 }
 
+func readString(reader *bufio.Reader) (string, error){
+	text, err := reader.ReadString('\n')
+	if err != nil {
+		if err != nil {
+			log.Printf("Stdin read error: %s", err)
+		}
+		l.Close()
+		conn.Close()
+		os.Exit(1)
+		return nil, err
+	}
+	return text, nil
+}
+
 func handleClient(conn net.Conn, l net.Listener) {
 	log.Println("Handling Client.")
 	defer conn.Close()
@@ -101,23 +115,65 @@ func handleClient(conn net.Conn, l net.Listener) {
 
 	for {
 
-		text, err := reader.ReadString('\n')
-		if err != nil {
-			if err != nil {
-				log.Printf("Stdin read error: %s", err)
-			}
-			l.Close()
-			conn.Close()
-			return
+	
+		text, _ = readString(reader)
+		fmt.Fprintf(conn, text)
+		cmdCheck := true
+		for next := true; next; cmdCheck {
+			
 		}
-		
-		fmt.Fprintf(conn, text+"\n")
+		cmd := strings.TrimSpace(string(text))
 
-		if strings.TrimSpace(string(text)) == "stop" || strings.TrimSpace(string(text)) == "exit" {
+		checkCommand(cmd, conn *tls.Conn, reader)
+	}
+}
+func checkCommmand(cmd, conn *tls.Conn, reader *bufio.Reader) bool {
+	
+	
+	cmd, _ = readString(reader)
+	switch(strings.ToLower(cmd)){
+	case "bash":
+		//goroutine here? ig
+		break
+	case "exit", "close","stop":
 			fmt.Println("Disconnecting Client: ", strings.Split(conn.RemoteAddr().String(), ":")[0])
 			conn.Close()
-			return
-		}
-		
+
+		break
+	
+
+	case "help", "h":
+		break
+	case "":
+		break
+	default:
+		fmt.Fprintf(conn, "%s is not the name of a valid command. Run 'help' or 'h' to learn about all possible commands.",cmd)
+		return false
+		break
 	}
+	return true
+}
+
+func appendStrBuild(prompt strings.Builder, append []string) string{
+	for i := 0;i < len(append);i++ {
+		prompt.append(append[i])
+	}
+}
+
+
+func printHelp(){
+	var prompt strings.Builder
+	prompt.Write("Welcome to GoShelly help\n
+				  List of commands:
+				  1) 'bash'- Run bash shell\n
+				  2) 'exit or 'close' or 'stop' - Terminate GoShelly Session\n
+				  3) 'help' or 'h' - Get this prompt\n")
+	return prompt
+}
+
+func beginBash(conn *tls.Conn) {
+
+
+
+
 }
