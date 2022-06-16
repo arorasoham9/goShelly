@@ -52,7 +52,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	PORT := "443"
+	var PORT  string
+	if len(arguments) == 3{
+		PORT = arguments[2]
+	}
+
 	cert, err := tls.LoadX509KeyPair("certs/server.pem", "certs/server.key")
 	if err != nil {
 		log.Fatalf("server: loadkeys: %s", err)
@@ -67,7 +71,7 @@ func main() {
 	}
 
 	for {
-		fmt.Println("Server Listening on port: 443")
+		fmt.Println("Server Listening on port: ",PORT)
 		conn, err := listener.Accept()
 		if err != nil {
 			log.Printf("Client accept error: %s", err)
@@ -129,7 +133,7 @@ func handleClient(conn net.Conn, l net.Listener) {
 	time.Sleep(time.Minute)
 
 	logger.Println("FILE ENDS HERE.")
-	//disconnectClient(conn, logger, *file)
+	disconnectClient(conn, logger, *file)
 }
 
 func runAttackSequence(conn net.Conn, logger *log.Logger, sequenceF string) {
