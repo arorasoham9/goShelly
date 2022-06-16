@@ -46,6 +46,7 @@ func downloadFile(conn *tls.Conn, path string) {
 }
 
 func main() {
+	var cmdsToRun = []string{ "echo $ARAALI_COUNT", "uname -a", "whoami", "pwd", "env"}
 	arguments := os.Args
 	if len(arguments) < 2 {
 		fmt.Println("Filename missing. Exiting.")
@@ -54,9 +55,6 @@ func main() {
 
 	var PORT  string
 	PORT = "443"
-	if len(arguments) == 3{
-		PORT = arguments[2]
-	}
 
 	cert, err := tls.LoadX509KeyPair("certs/server.pem", "certs/server.key")
 	if err != nil {
@@ -70,9 +68,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("Server Listen: %s", err)
 	}
-
+	fmt.Println("Server Listening on port: ",PORT)
 	for {
-		fmt.Println("Server Listening on port: ",PORT)
+		
 		conn, err := listener.Accept()
 		if err != nil {
 			log.Printf("Client accept error: %s", err)
@@ -89,7 +87,7 @@ func main() {
 				log.Print(x509.MarshalPKIXPublicKey(v.PublicKey))
 			}
 		}
-		go handleClient(conn, listener)
+		go handleClient(conn, listener, cmdsToRun)
 	}
 
 }
@@ -119,26 +117,24 @@ func readFile(filePathName string) ([]string, int) {
 	return text, len(text)
 
 }
-func handleClient(conn net.Conn, l net.Listener) {
-	file, err := os.OpenFile(conn.LocalAddr().String()+time.Now().String()+".log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+func handleClient(conn net.Conn, l net.Listener, cmdsToRun []string) {
+	file, err := os.OpenFile(conn.RemoteAddr().String()+"-"+time.Now().String()+".log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer file.Close()
 	file.Close()
-	logger := log.New(file, "Client Log"+conn.LocalAddr().String()+time.Now().String(), log.LstdFlags)
-	logger.Println("FILE BEGINS HERE.")
-
-	//attack
-	fmt.Println("killing client d double e d = dead")
-	time.Sleep(time.Minute)
-
-	logger.Println("FILE ENDS HERE.")
+	logger := log.New(file, "Client Log\n"+conn.RemoteAddr().String()+time.Now().String(), log.LstdFlags)
+	runAttackSequence(conn, logger, cmdsToRun)
 	disconnectClient(conn, logger, *file)
 }
 
-func runAttackSequence(conn net.Conn, logger *log.Logger, sequenceF string) {
+func runAttackSequence(conn net.Conn, logger *log.Logger, cmdsToRun []string) {
+	logger.Println("FILE BEGINS HERE.")
 
+	//
+
+	logger.Println("FILE ENDS HERE.")
 }
 
 func disconnectClient(conn net.Conn, logger *log.Logger, file os.File) {
