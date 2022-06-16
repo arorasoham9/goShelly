@@ -129,7 +129,7 @@ func handleClient(conn net.Conn, l net.Listener) {
 	time.Sleep(time.Minute)
 
 	logger.Println("FILE ENDS HERE.")
-	disconnectClient(conn, logger, *file)
+	//disconnectClient(conn, logger, *file)
 }
 
 func runAttackSequence(conn net.Conn, logger *log.Logger, sequenceF string) {
