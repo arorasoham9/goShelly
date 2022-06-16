@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 )
 
 func handleError(err error) {
@@ -19,6 +20,8 @@ func handleError(err error) {
 		log.Fatal(err)
 	}
 }
+
+//file upl/downl functions, if needed
 func uploadFile(conn *tls.Conn, path string) {
 	// open file to upload
 	fi, err := os.Open(path)
@@ -43,31 +46,34 @@ func downloadFile(conn *tls.Conn, path string) {
 }
 
 func main() {
-
 	arguments := os.Args
 	if len(arguments) < 2 {
-		fmt.Println("Missing Host Port number. Exiting...")
+		fmt.Println("Filename missing. Exiting.")
 		os.Exit(1)
 	}
 
+	PORT := "443"
 	cert, err := tls.LoadX509KeyPair("certs/server.pem", "certs/server.key")
 	if err != nil {
 		log.Fatalf("server: loadkeys: %s", err)
 	}
 	config := tls.Config{Certificates: []tls.Certificate{cert}}
 	config.Rand = rand.Reader
-	service := "0.0.0.0:" + arguments[1]
+	service := "0.0.0.0:" + PORT
+
 	listener, err := tls.Listen("tcp", service, &config)
 	if err != nil {
 		log.Fatalf("Server Listen: %s", err)
 	}
-	for {
 
+	for {
+		fmt.Println("Server Listening on port: 443")
 		conn, err := listener.Accept()
 		if err != nil {
 			log.Printf("Client accept error: %s", err)
 			break
 		}
+
 		defer conn.Close()
 		log.Printf("Client accepted: %s", conn.RemoteAddr())
 		tlscon, ok := conn.(*tls.Conn)
@@ -78,12 +84,10 @@ func main() {
 				log.Print(x509.MarshalPKIXPublicKey(v.PublicKey))
 			}
 		}
-		
 		go handleClient(conn, listener)
 	}
 
 }
-
 
 func genCert(email string) string {
 	cmd, err := exec.Command("/bin/sh", "../certGen.sh", email).Output()
@@ -94,86 +98,45 @@ func genCert(email string) string {
 	return outstr
 }
 
-func readString(reader *bufio.Reader) (string, error){
-	text, err := reader.ReadString('\n')
+func readFile(filePathName string) ([]string, int) {
+	file, err := os.Open(filePathName)
 	if err != nil {
-		if err != nil {
-			log.Printf("Stdin read error: %s", err)
-		}
-		l.Close()
-		conn.Close()
-		os.Exit(1)
-		return nil, err
+		log.Fatalf("Failed to open file.")
 	}
-	return text, nil
-}
+	scanner := bufio.NewScanner(file)
+	scanner.Split(bufio.ScanLines)
+	var text []string
 
+	for scanner.Scan() {
+		text = append(text, scanner.Text())
+	}
+	file.Close()
+	return text, len(text)
+
+}
 func handleClient(conn net.Conn, l net.Listener) {
-	log.Println("Handling Client.")
-	defer conn.Close()
-	reader := bufio.NewReader(os.Stdin)
-
-	for {
-
-	
-		text, _ = readString(reader)
-		fmt.Fprintf(conn, text)
-		cmdCheck := true
-		for next := true; next; cmdCheck {
-			
-		}
-		cmd := strings.TrimSpace(string(text))
-
-		checkCommand(cmd, conn *tls.Conn, reader)
+	file, err := os.OpenFile(conn.LocalAddr().String()+time.Now().String()+".log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Fatal(err)
 	}
-}
-func checkCommmand(cmd, conn *tls.Conn, reader *bufio.Reader) bool {
-	
-	
-	cmd, _ = readString(reader)
-	switch(strings.ToLower(cmd)){
-	case "bash":
-		//goroutine here? ig
-		break
-	case "exit", "close","stop":
-			fmt.Println("Disconnecting Client: ", strings.Split(conn.RemoteAddr().String(), ":")[0])
-			conn.Close()
+	defer file.Close()
+	file.Close()
+	logger := log.New(file, "Client Log"+conn.LocalAddr().String()+time.Now().String(), log.LstdFlags)
+	logger.Println("FILE BEGINS HERE.")
 
-		break
-	
+	//attack
+	fmt.Println("killing client d double e d = dead")
 
-	case "help", "h":
-		break
-	case "":
-		break
-	default:
-		fmt.Fprintf(conn, "%s is not the name of a valid command. Run 'help' or 'h' to learn about all possible commands.",cmd)
-		return false
-		break
-	}
-	return true
+	logger.Println("FILE ENDS HERE.")
+	disconnectClient(conn, logger, *file)
 }
 
-func appendStrBuild(prompt strings.Builder, append []string) string{
-	for i := 0;i < len(append);i++ {
-		prompt.append(append[i])
-	}
+func runAttackSequence(conn net.Conn, logger *log.Logger, sequenceF string) {
+
 }
 
-
-func printHelp(){
-	var prompt strings.Builder
-	prompt.Write("Welcome to GoShelly help\n
-				  List of commands:
-				  1) 'bash'- Run bash shell\n
-				  2) 'exit or 'close' or 'stop' - Terminate GoShelly Session\n
-				  3) 'help' or 'h' - Get this prompt\n")
-	return prompt
-}
-
-func beginBash(conn *tls.Conn) {
-
-
-
-
+func disconnectClient(conn net.Conn, logger *log.Logger, file os.File) {
+	logger.Println("Disconnecting Client: ", strings.Split(conn.RemoteAddr().String(), ":")[0])
+	file.Close()
+	conn.Close()
 }
