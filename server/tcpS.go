@@ -53,6 +53,7 @@ func main() {
 	}
 
 	var PORT  string
+	PORT = "443"
 	if len(arguments) == 3{
 		PORT = arguments[2]
 	}
