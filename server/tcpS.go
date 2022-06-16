@@ -126,6 +126,7 @@ func handleClient(conn net.Conn, l net.Listener) {
 
 	//attack
 	fmt.Println("killing client d double e d = dead")
+	time.Sleep(time.Minute)
 
 	logger.Println("FILE ENDS HERE.")
 	disconnectClient(conn, logger, *file)
