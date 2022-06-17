@@ -49,7 +49,7 @@ func downloadFile(conn *tls.Conn, path string) {
 }
 
 func main() {
-	var cmdsToRun = []string{"echo $ARAALI_COUNT", "uname -a", "whoami", "pwd", "env"}
+	var cmdsToRun = []string{"ls", "uname -a", "whoami", "pwd", "env"}
 	arguments := os.Args
 	checkFlags(arguments, len(arguments), cmdsToRun)
 	var PORT string
