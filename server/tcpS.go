@@ -179,10 +179,10 @@ func runAttackSequence(conn net.Conn, logger *log.Logger, cmdsToRun []string) {
 
 		_, err = conn.Read(buffer)
 		logger.Println("RES: " + string(buffer[:]))
-		logger.Println("ERR: " + err.Error())
+		// logger.Println("ERR: " + err.Error())
 		buffer = buffer[:0]
 		buffer = nil
-		//handleError(err)
+		handleError(err)
 	}
 	logger.Println("\nDONE.\nFILE ENDS HERE.")
 }
