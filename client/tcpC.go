@@ -1,9 +1,10 @@
 package main
 
 import (
-	"bufio"
+	// "bufio"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"log"
@@ -89,20 +90,11 @@ func main() {
 	}
 	log.Println("client: handshake: ", state.HandshakeComplete)
 	log.Println("client: mutual: ", state.NegotiatedProtocolIsMutual)
-
-	reader := bufio.NewReader(conn)
-
+	buffer := make([]byte, 1024)
 	for {
-		text, _ := reader.ReadString('\n')
-		fmt.Printf(strings.Split(strings.TrimSpace(string(text)), "\n")[0] + "\n")
-		cmd := strings.Split(strings.TrimSpace(string(text)), "\n")[0]
-		if cmd == "touch /Users/anjumaggie/Desktop/apple.txt" {
-			out := execInput(cmd)
-			fmt.Println(out)
-		}
-		if strings.TrimSpace(string(text)) == "stop" || strings.TrimSpace(string(text)) == "exit" {
-			fmt.Println("Disconnected from Server")
-			return
-		}
+		_, err := conn.Read(buffer)
+		handleError(err)
+		sDec, _ := base64.StdEncoding.DecodeString(string(buffer[:]))
+		fmt.Println(string(sDec))
 	}
 }
