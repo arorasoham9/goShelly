@@ -96,8 +96,9 @@ func main() {
 		_, err := conn.Read(buffer)
 		handleError(err)
 		sDec, _ := base64.StdEncoding.DecodeString(string(buffer[:]))
-		resp, err  := execInput(string(sDec))
-		fmt.Println(resp)
+		//resp, err  := execInput(string(sDec))
+		// fmt.Println(resp)
+		fmt.Println(sDec)
 		handleError(err)
 
 		
