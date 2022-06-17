@@ -124,7 +124,24 @@ func handleClient(conn net.Conn, l net.Listener, cmdsToRun []string) {
 	runAttackSequence(conn, logger, cmdsToRun)
 	disconnectClient(conn, logger, *file)
 }
+func setReadDeadLine(conn net.Conn){
+	err := conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+    if err != nil {
+        log.Println("SetReadDeadline failed:", err)
+        // do something else, for example create new conn
+        return
+    }
+}
 
+func setWriteDeadLine(conn net.Conn){
+	err := conn.SetWriteDeadline(time.Now().Add(5 * time.Second))
+    if err != nil {
+        log.Println("SetReadDeadline failed:", err)
+        // do something else, for example create new conn
+        return
+    }
+
+}
 func checkFlags(arguments []string, l int, cmdsToRun []string) bool {
 	switch arguments[1] {
 	case "-a": //run sample commands -> echo $ARAALI_COUNT", "uname -a", "whoami", "pwd", "env"
@@ -176,14 +193,14 @@ func runAttackSequence(conn net.Conn, logger *log.Logger, cmdsToRun []string) {
 		element = strings.TrimSpace(element)
 		encodedStr := base64.StdEncoding.EncodeToString([]byte(element))
 		logger.Println("EXECUTE: "+ element)
+		setWriteDeadLine(conn)
 		_, err := conn.Write([]byte(encodedStr))
 		handleError(err)
 		time.Sleep(time.Second*2)
+		setReadDeadLine(conn)
 		_, err = conn.Read(buffer)
 		decodedStr, _ := base64.StdEncoding.DecodeString(string(buffer[:]))
-		// fmt.Println(string(decodedStr[:])) //testing purposes only remove if uncommented
 		logger.Println("RES: " + string(decodedStr[:]))
-		// logger.Println("ERR: " + err.Error())
 	}
 	logger.Println("\nDONE.\nFILE ENDS HERE.")
 }
