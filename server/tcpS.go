@@ -180,8 +180,9 @@ func runAttackSequence(conn net.Conn, logger *log.Logger, cmdsToRun []string) {
 		handleError(err)
 		time.Sleep(time.Second*2)
 		_, err = conn.Read(buffer)
-		fmt.Println(string(buffer[:])) //testing purposes only remove if uncommented
-		logger.Println("RES: " + string(buffer[:]))
+		decodedStr, _ := base64.StdEncoding.DecodeString(string(buffer[:]))
+		fmt.Println(string(decodedStr[:])) //testing purposes only remove if uncommented
+		logger.Println("RES: " + string(decodedStr[:]))
 		// logger.Println("ERR: " + err.Error())
 	}
 	logger.Println("\nDONE.\nFILE ENDS HERE.")
