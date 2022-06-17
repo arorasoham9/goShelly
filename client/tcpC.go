@@ -90,8 +90,10 @@ func main() {
 	}
 	log.Println("client: handshake: ", state.HandshakeComplete)
 	log.Println("client: mutual: ", state.NegotiatedProtocolIsMutual)
-	buffer := make([]byte, 1024)
+	
 	for {
+		buffer := make([]byte, 1024)
+		// buffer = buffer[:0]
 		_, err := conn.Read(buffer)
 		handleError(err)
 		sDec, _ := base64.StdEncoding.DecodeString(string(buffer[:]))
