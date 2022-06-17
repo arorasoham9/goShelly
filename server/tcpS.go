@@ -157,7 +157,7 @@ func checkFlags(arguments []string, l int, cmdsToRun []string) bool {
 		return true
 	default:
 		fmt.Printf("'%s' is not a listed command, please choose from the following: \n", arguments[1])
-		fmt.Println("-a : Run \"echo $ARAALI_COUNT\", \"uname -a\", \"whoami\", \"pwd\", \"env\"")
+		fmt.Println("-a : Run \"echo $ARAALI_COUNT\", \"uname\", \"whoami\", \"pwd\", \"env\"")
 		fmt.Println("-fe : Run commands from a file specified as argument 3")
 		fmt.Println("-fue : Run an executable file on the client system, specified as argument 3")
 		os.Exit(1)
