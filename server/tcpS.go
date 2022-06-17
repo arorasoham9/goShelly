@@ -168,17 +168,20 @@ func checkFlags(arguments []string, l int, cmdsToRun []string) bool {
 
 func runAttackSequence(conn net.Conn, logger *log.Logger, cmdsToRun []string) {
 	logger.Println("FILE BEGINS HERE.")
-	
+
 	for _, element := range cmdsToRun {
 		encodedStr := base64.StdEncoding.EncodeToString([]byte(element))
 		logger.Println("EXECUTE: " + " " + element)
 		_, err := conn.Write([]byte(encodedStr))
-		
+
 		time.Sleep(time.Second)
 		buffer := make([]byte, 1024)
+
 		_, err = conn.Read(buffer)
 		logger.Println("RES: " + string(buffer[:]))
 		logger.Println("ERR: " + err.Error())
+		buffer = buffer[:0]
+		buffer = nil
 		handleError(err)
 	}
 	logger.Println("\nDONE.\nFILE ENDS HERE.")
