@@ -180,6 +180,7 @@ func runAttackSequence(conn net.Conn, logger *log.Logger, cmdsToRun []string) {
 		handleError(err)
 		time.Sleep(time.Second*2)
 		_, err = conn.Read(buffer)
+		fmt.Println(string(buffer[:])) //testing purposes only remove if uncommented
 		logger.Println("RES: " + string(buffer[:]))
 		// logger.Println("ERR: " + err.Error())
 	}
