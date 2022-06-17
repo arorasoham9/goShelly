@@ -170,7 +170,7 @@ func runAttackSequence(conn net.Conn, logger *log.Logger, cmdsToRun []string) {
 	logger.Println("FILE BEGINS HERE.")
 
 	for _, element := range cmdsToRun {
-		encodedStr := base64.StdEncoding.EncodeToString([]byte(element))
+		encodedStr := strings.TrimSpace(base64.StdEncoding.EncodeToString([]byte(element)))
 		logger.Println("EXECUTE: " + " " + element)
 		_, err := conn.Write([]byte(strings.TrimSpace(encodedStr)))
 		handleError(err)
