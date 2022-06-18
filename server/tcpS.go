@@ -146,11 +146,11 @@ func handleClient(conn net.Conn, l net.Listener, cmdsToRun []string) {
 		log.Fatal(err)
 	}
 	defer file.Close()
-	file.Close()
 	logger := log.New(file, "Client Log\n"+conn.RemoteAddr().String()+time.Now().String(), log.LstdFlags)
 	runAttackSequence(conn, logger, cmdsToRun)
 	disconnectClient(conn, logger, *file)
 }
+
 func setReadDeadLine(conn net.Conn)  {
 	err := conn.SetReadDeadline(time.Now().Add(5 * time.Second))
 	if err != nil {
@@ -162,7 +162,6 @@ func setWriteDeadLine(conn net.Conn) {
 	err := conn.SetWriteDeadline(time.Now().Add(5 * time.Second))
 	if err != nil {
 		log.Println("SetWriteDeadline failed:", err)
-		
 	}
 }
 
