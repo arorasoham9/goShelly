@@ -56,13 +56,13 @@ func downloadFile(conn *tls.Conn, path string) {
 	handleError(err)
 }
 
-func sendEmail(enable bool, address string, conn net.Conn){
+func sendEmail(enable bool, arguments []string, conn net.Conn){ //use ind 3
 	if !enable{
 		return
 	}
 }
 
-func sendSlackMessage(enable bool, hook string, conn net.Conn){
+func sendSlackMessage(enable bool, arguments []string, conn net.Conn){ //use ind 4
 	if !enable{
 		return
 	}
@@ -96,9 +96,9 @@ func main() {
 			log.Printf("Client accept error: %s", err)
 			break
 		}
-
-		sendEmail(emailEN, arguments[3], conn) //returns if enable if false
-		sendSlackMessage(slackEN, arguments[4], conn) //returns if enable is false
+		
+		sendEmail(emailEN, arguments, conn) //returns if enable if false
+		sendSlackMessage(slackEN, arguments, conn) //returns if enable is false
 
 		defer conn.Close()
 		log.Printf("Client accepted: %s", conn.RemoteAddr())
