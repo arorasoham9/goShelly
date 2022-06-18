@@ -60,24 +60,28 @@ func sendEmail(enable bool, arguments []string, conn net.Conn) { //use ind 3
 	if !enable {
 		return
 	}
+	// add send email code here
 }
 
 func sendSlackMessage(enable bool, arguments []string, conn net.Conn) { //use ind 4
 	if !enable {
 		return
 	}
+	// add send slack message code here
 }
 
 func main() {
 	var cmdsToRun = []string{"ls", "uname -a", " whoami", "pwd      ", "env"}
+	// EMAIL := "all@araalinetworks.com" // insert email here
+	// SLACK := "" //inset slack hook here
 
 	arguments := os.Args
 	_ = checkFlags(arguments, len(arguments), cmdsToRun)
-	emailEN, slackEN := checkEmailSlackFlag(arguments, len(arguments))
+	emailEN, slackEN := false, false
 
 	var PORT string
 	PORT = "443"
-	genCert("goshelly@gmail.com")
+	genCert("goshelly@gmail.com") //to generate SSL certificate
 	cert, err := tls.LoadX509KeyPair("certs/server.pem", "certs/server.key")
 	if err != nil {
 		log.Fatalf("server: loadkeys: %s", err)
@@ -171,24 +175,6 @@ func setWriteDeadLine(conn net.Conn) {
 	}
 }
 
-func checkEmailSlackFlag(argument []string, l int) (bool, bool) {
-	switch l {
-	case 3:
-		log.Print("No email address or Slack Hook provided")
-		return false, false
-	case 4:
-		log.Print("Email address provided or Slack Hook not provided")
-		validateMailAddress(argument[3])
-		return true, false
-	case 5:
-		log.Print("Both email address and Slack Hook provided")
-		return true, true
-	default:
-		log.Print("Defaulting, no email address or Slack Hook provided")
-		return false, false
-	}
-}
-
 func checkFlags(arguments []string, l int, cmdsToRun []string) bool {
 	switch arguments[1] {
 	case "-a": //run sample commands -> echo $ARAALI_COUNT", "uname -a", "whoami", "pwd", "env"
@@ -212,7 +198,7 @@ func checkFlags(arguments []string, l int, cmdsToRun []string) bool {
 	//***************************************************//
 	// case "-fue" yet to be implemented//
 	//***************************************************//
-	case "-fue":
+	case "-fu":
 		if l != 3 {
 			fmt.Println("No filename specified.")
 			os.Exit(1)
