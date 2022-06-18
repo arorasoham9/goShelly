@@ -10,7 +10,6 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"runtime"
 	"strings"
 	"time"
 )
@@ -51,11 +50,7 @@ func genCert(email string) string {
 	return outstr
 
 }
-func getOS(conn *tls.Conn) string {
 
-	return runtime.GOOS
-
-}
 func execInput(input string) (string, error) {
 	// Remove the newline character.
 	input = strings.TrimSuffix(input, "\n")
@@ -90,6 +85,7 @@ func main() {
 		fmt.Println(x509.MarshalPKIXPublicKey(v.PublicKey))
 		fmt.Println(v.Subject)
 	}
+
 	log.Println("client: handshake: ", state.HandshakeComplete)
 	log.Println("client: mutual: ", state.NegotiatedProtocolIsMutual)
 

