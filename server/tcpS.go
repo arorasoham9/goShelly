@@ -141,12 +141,12 @@ func readFile(filePathName string) ([]string, int) {
 }
 
 func handleClient(conn net.Conn, l net.Listener, cmdsToRun []string) {
-	file, err := os.OpenFile(conn.RemoteAddr().String()+"-"+time.Now().Format(time.RFC1123)+".log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	file, err := os.OpenFile("./logs/"+conn.RemoteAddr().String()+"-"+time.Now().Format(time.RFC1123)+".log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer file.Close()
-	logger := log.New(file, "Client Log\n"+conn.RemoteAddr().String()+time.Now().String(), log.LstdFlags)
+	logger := log.New(file,"", log.LstdFlags)
 	runAttackSequence(conn, logger, cmdsToRun)
 	disconnectClient(conn, logger, *file)
 }
