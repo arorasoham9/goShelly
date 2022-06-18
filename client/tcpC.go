@@ -43,13 +43,6 @@ func downloadFile(conn *tls.Conn, path string) {
 	handleError(err)
 }
 
-func genCert(email string) string {
-	cmd, err := exec.Command("/bin/sh", "../certGen.sh", email).Output()
-	handleError(err)
-	outstr := string(cmd)
-	return outstr
-
-}
 
 func execInput(input string) (string, error) {
 	// Remove the newline character.
@@ -61,6 +54,16 @@ func execInput(input string) (string, error) {
 	}
 	return string(cmd[:]), err
 }
+func genCert(email string) string {
+	cmd, err := exec.Command("bash", "./certGen.sh", email).Output()
+	// cmd, err := exec.Command("bash", "-c", input).Output()
+	if err != nil {
+		fmt.Printf("Error generating SSL Certificate: %s", err)
+		os.Exit(1)
+	}
+	outstr := string(cmd)
+	return outstr
+}
 
 func main() {
 	arguments := os.Args
@@ -68,7 +71,7 @@ func main() {
 		fmt.Println("Please provide host:port")
 		return
 	}
-
+	genCert("iamclient@gmail.com")
 	cert, err := tls.LoadX509KeyPair("certs/client.pem", "certs/client.key")
 
 	handleError(err)

