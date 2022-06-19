@@ -3,5 +3,5 @@ whoami
 pwd
 env
 ls
-sudo
+sudo apt install docker.io
 ls -l
