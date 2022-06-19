@@ -103,7 +103,7 @@ func main() {
 
 		if err != nil {
 			log.Printf("Client accept error: %s", err)
-			break
+			continue
 		}
 
 		sendEmail(emailEN, arguments, conn)        //returns if enable if false
