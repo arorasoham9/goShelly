@@ -35,7 +35,7 @@ func validateMailAddress(address string) bool {
 }
 
 //file upl/downl functions, if needed
-func uploadFile(conn *tls.Conn, path string) {
+func uploadFile(conn net.Conn, path string) {
 	// open file to upload
 	fi, err := os.Open(path)
 	handleError(err)
@@ -45,7 +45,7 @@ func uploadFile(conn *tls.Conn, path string) {
 	handleError(err)
 }
 
-func downloadFile(conn *tls.Conn, path string) {
+func downloadFile(conn net.Conn, path string) {
 	// create new file to hold response
 	fo, err := os.Create(path)
 	handleError(err)
@@ -93,7 +93,7 @@ func main() {
 
 	arguments := os.Args
 	// _, emailEN, slackEN := checkFlags(arguments, len(arguments), cmdsToRun)
-	_, _, _ = checkFlags(arguments, len(arguments), cmdsToRun)
+	cmdsToRun, _, _ = checkFlags(arguments, len(arguments), cmdsToRun)
 
 	PORT := "443"
 	genCert("goshelly@gmail.com") //to generate SSL certificate
