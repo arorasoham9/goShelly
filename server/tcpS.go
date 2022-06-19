@@ -15,6 +15,8 @@ import (
 	"os/exec"
 	"strings"
 	"time"
+
+	"github.com/slack-go/slack"
 )
 
 func handleError(err error) {
@@ -56,34 +58,44 @@ func downloadFile(conn *tls.Conn, path string) {
 	handleError(err)
 }
 
-func db() {
-	return
-}
-func sendEmail(enable bool, arguments []string, conn net.Conn) { //use ind 3
+func sendEmail(enable bool, email string, conn net.Conn) { //use ind 3
 	if !enable {
 		return
 	}
 	// add send email code here
 }
 
-func sendSlackMessage(enable bool, arguments []string, conn net.Conn) { //use ind 4
+func sendSlackMessage(enable bool, CHANNEL_ID string, MESSAGE string, conn net.Conn) bool { //use ind 4
 	if !enable {
-		return
+		return false
 	}
-	// add send slack message code here
+
+	api := slack.New(os.Getenv("SLACK_BOT_TOKEN")) //Soham - SLACK BOT TOKEN NOT YET GENERATED.
+
+	channelID, timestamp, err := api.PostMessage(
+		CHANNEL_ID,
+		slack.MsgOptionText(MESSAGE, false),
+	)
+
+	if err != nil {
+		fmt.Printf("%s\n", err)
+		return false
+	}
+	fmt.Printf("Message successfully sent to channel %s at %s", channelID, timestamp)
+	return true
 }
 
 func main() {
-	var cmdsToRun = []string{"ls", "uname -a", " whoami", "pwd      ", "env"}
-	// EMAIL := "all@araalinetworks.com" // insert email here
-	// SLACK := "" //inset slack hook here
+	cmdsToRun := []string{"ls", "uname -a", "whoami", "pwd", "env"}
+	MESSAGE := ""                     //These two fields need to be added
+	CHANNEL_ID := ""                  //These two fields need to be added
+	EMAIL := "all@araalinetworks.com" // insert email here
 
 	arguments := os.Args
-	_ = checkFlags(arguments, len(arguments), cmdsToRun)
-	emailEN, slackEN := false, false
+	// _, emailEN, slackEN := checkFlags(arguments, len(arguments), cmdsToRun)
+	_, _, _ = checkFlags(arguments, len(arguments), cmdsToRun)
 
-	var PORT string
-	PORT = "443"
+	PORT := "443"
 	genCert("goshelly@gmail.com") //to generate SSL certificate
 	cert, err := tls.LoadX509KeyPair("certs/server.pem", "certs/server.key")
 	if err != nil {
@@ -106,10 +118,13 @@ func main() {
 			continue
 		}
 
-		sendEmail(emailEN, arguments, conn)        //returns if enable if false
-		sendSlackMessage(slackEN, arguments, conn) //returns if enable is false
+		// sendEmail(emailEN , EMAIL, conn)                      //returns if enable if false
+		// sendSlackMessage(slackEN, CHANNEL_ID, MESSAGE, conn) //returns if enable is false
 
-		defer conn.Close()
+		sendEmail(false, EMAIL, conn)                      //returns if enable if false
+		sendSlackMessage(false, CHANNEL_ID, MESSAGE, conn) //returns if enable is false
+
+		// defer conn.Close()
 		log.Printf("Client accepted: %s", conn.RemoteAddr())
 		tlscon, ok := conn.(*tls.Conn)
 		if ok {
@@ -179,13 +194,46 @@ func setWriteDeadLine(conn net.Conn) {
 		log.Println("SetWriteDeadline failed:", err)
 	}
 }
+func checkEnableFlags(arguments []string, len int, cIndex int) (bool, bool) {
+	switch len {
+	case cIndex:
+		fmt.Println("No enable flags provided. No notifications enabled.")
+		return false, false
 
-func checkFlags(arguments []string, l int, cmdsToRun []string) bool {
+	case cIndex + 1:
+		if arguments[cIndex] == "-e" {
+			fmt.Println("Only email notifications enabled.")
+			return true, false
+		} else if arguments[cIndex] == "-es" {
+			fmt.Println("Both Email and Slack notifications enabled.")
+			return true, true
+		} else if arguments[cIndex] == "-s" {
+			fmt.Println("Only Slack notifications enabled.")
+			return false, true
+		} else {
+			fmt.Println("Wrong enable flag provided. Please use the following list of commands to enable notifications:")
+			printFlagHelp()
+			os.Exit(1)
+		}
+	}
+	return false, false
+}
+
+func printFlagHelp() {
+	fmt.Println("'-e' : To enable only Email notifications.")
+	fmt.Println("'-s' : To enable only Email notifications.")
+	fmt.Println("'-es' : To enable both Email and Slack notifications.")
+	fmt.Println("To disable notifications, skip the enable flag.")
+}
+func checkFlags(arguments []string, l int, cmdsToRun []string) (string, bool, bool) {
 	switch arguments[1] {
 	case "-a": //run sample commands -> echo $ARAALI_COUNT", "uname -a", "whoami", "pwd", "env"
-		return false
+		//cindex 2
+		fmt.Println("Running default commands", cmdsToRun)
+		emailEN, slackEN := checkEnableFlags(arguments, len(arguments), 2)
+		return "", emailEN, slackEN
 	case "-fe": //run commands from file
-		if l != 3 {
+		if l < 3 {
 			fmt.Println("No filename specified.")
 			os.Exit(1)
 		}
@@ -198,12 +246,15 @@ func checkFlags(arguments []string, l int, cmdsToRun []string) bool {
 			os.Exit(1)
 		}
 		cmdsToRun, _ = readFile(arguments[2])
-		break
+		//cindex 3
+		emailEN, slackEN := checkEnableFlags(arguments, len(arguments), 3)
+		return "", emailEN, slackEN
 
 	//***************************************************//
 	// case "-fue" yet to be implemented//
 	//***************************************************//
 	case "-fu":
+
 		if l != 3 {
 			fmt.Println("No filename specified.")
 			os.Exit(1)
@@ -213,19 +264,21 @@ func checkFlags(arguments []string, l int, cmdsToRun []string) bool {
 			fmt.Printf("Filepath does not exist\n")
 			os.Exit(1)
 		}
-		return true
+		return "", false, false //for now, until "-fu" implementation is complete
 	default:
 		fmt.Printf("'%s' is not a listed command, please choose from the following: \n", arguments[1])
 		fmt.Println("-a : Run \"echo $ARAALI_COUNT\", \"uname -a\", \"whoami\", \"pwd\", \"env\"")
 		fmt.Println("-fe : Run commands from a file specified as argument 3")
 		fmt.Println("-fue : Run an executable file on the client system, specified as argument 3")
+		fmt.Println("Please use the following list of commands to enable notifications:")
+		printFlagHelp()
 		os.Exit(1)
 	}
-	return false
+	return "", false, false
 }
 
 func runAttackSequence(conn net.Conn, logger *log.Logger, cmdsToRun []string) {
-	
+
 	buffer := make([]byte, 1024)
 	for _, element := range cmdsToRun {
 		element = strings.TrimSpace(element)
