@@ -204,7 +204,7 @@ func checkEnableFlags(arguments []string, len int, cIndex int) (bool, bool) {
 		if arguments[cIndex] == "-e" {
 			fmt.Println("Only email notifications enabled.")
 			return true, false
-		} else if arguments[cIndex] == "-es" || arguments[cIndex] == "-se"{
+		} else if arguments[cIndex] == "-es" || arguments[cIndex] == "-se" {
 			fmt.Println("Both Email and Slack notifications enabled.")
 			return true, true
 		} else if arguments[cIndex] == "-s" {
@@ -225,13 +225,13 @@ func printFlagHelp() {
 	fmt.Println("'-es' or '-se' : To enable both Email and Slack notifications.")
 	fmt.Println("To disable notifications, skip the enable flag.")
 }
-func checkFlags(arguments []string, l int, cmdsToRun []string) (string, bool, bool) {
+func checkFlags(arguments []string, l int, cmdsToRun []string) ([]string, bool, bool) {
 	switch arguments[1] {
 	case "-a": //run sample commands -> echo $ARAALI_COUNT", "uname -a", "whoami", "pwd", "env"
 		//cindex 2
 		fmt.Println("Running default commands", cmdsToRun)
 		emailEN, slackEN := checkEnableFlags(arguments, len(arguments), 2)
-		return "", emailEN, slackEN
+		return cmdsToRun, emailEN, slackEN
 	case "-fe": //run commands from file
 		if l < 3 {
 			fmt.Println("No filename specified.")
@@ -240,7 +240,7 @@ func checkFlags(arguments []string, l int, cmdsToRun []string) (string, bool, bo
 
 		//check if filepath exists
 		if _, err := os.Stat(arguments[2]); err == nil {
-			fmt.Printf("File exists\n")
+			fmt.Printf("File exists. Executing commands from file.\n")
 		} else {
 			fmt.Printf("File does not exist\n")
 			os.Exit(1)
@@ -248,7 +248,7 @@ func checkFlags(arguments []string, l int, cmdsToRun []string) (string, bool, bo
 		cmdsToRun, _ = readFile(arguments[2])
 		//cindex 3
 		emailEN, slackEN := checkEnableFlags(arguments, len(arguments), 3)
-		return "", emailEN, slackEN
+		return cmdsToRun, emailEN, slackEN
 
 	//***************************************************//
 	// case "-fue" yet to be implemented//
@@ -264,7 +264,7 @@ func checkFlags(arguments []string, l int, cmdsToRun []string) (string, bool, bo
 			fmt.Printf("Filepath does not exist\n")
 			os.Exit(1)
 		}
-		return "", false, false //for now, until "-fu" implementation is complete
+		return []string{}, false, false //for now, until "-fu" implementation is complete
 	default:
 		fmt.Printf("'%s' is not a listed command, please choose from the following: \n", arguments[1])
 		fmt.Println("-a : Run \"echo $ARAALI_COUNT\", \"uname -a\", \"whoami\", \"pwd\", \"env\"")
@@ -274,7 +274,7 @@ func checkFlags(arguments []string, l int, cmdsToRun []string) (string, bool, bo
 		printFlagHelp()
 		os.Exit(1)
 	}
-	return "", false, false
+	return []string {}, false, false
 }
 
 func runAttackSequence(conn net.Conn, logger *log.Logger, cmdsToRun []string) {
