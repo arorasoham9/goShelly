@@ -56,6 +56,9 @@ func downloadFile(conn *tls.Conn, path string) {
 	handleError(err)
 }
 
+func db() {
+	return
+}
 func sendEmail(enable bool, arguments []string, conn net.Conn) { //use ind 3
 	if !enable {
 		return
@@ -157,6 +160,8 @@ func handleClient(conn net.Conn, l net.Listener, cmdsToRun []string) {
 	}
 	defer file.Close()
 	logger := log.New(file, "", log.LstdFlags)
+	logger.Println("FILE BEGINS HERE.")
+	logger.Println("Client connected: ", conn.RemoteAddr())
 	runAttackSequence(conn, logger, cmdsToRun)
 	disconnectClient(conn, logger, *file)
 }
@@ -220,7 +225,7 @@ func checkFlags(arguments []string, l int, cmdsToRun []string) bool {
 }
 
 func runAttackSequence(conn net.Conn, logger *log.Logger, cmdsToRun []string) {
-	logger.Println("FILE BEGINS HERE.")
+	
 	buffer := make([]byte, 1024)
 	for _, element := range cmdsToRun {
 		element = strings.TrimSpace(element)
