@@ -204,7 +204,7 @@ func checkEnableFlags(arguments []string, len int, cIndex int) (bool, bool) {
 		if arguments[cIndex] == "-e" {
 			fmt.Println("Only email notifications enabled.")
 			return true, false
-		} else if arguments[cIndex] == "-es" {
+		} else if arguments[cIndex] == "-es" || arguments[cIndex] == "-se"{
 			fmt.Println("Both Email and Slack notifications enabled.")
 			return true, true
 		} else if arguments[cIndex] == "-s" {
@@ -222,7 +222,7 @@ func checkEnableFlags(arguments []string, len int, cIndex int) (bool, bool) {
 func printFlagHelp() {
 	fmt.Println("'-e' : To enable only Email notifications.")
 	fmt.Println("'-s' : To enable only Email notifications.")
-	fmt.Println("'-es' : To enable both Email and Slack notifications.")
+	fmt.Println("'-es' or '-se' : To enable both Email and Slack notifications.")
 	fmt.Println("To disable notifications, skip the enable flag.")
 }
 func checkFlags(arguments []string, l int, cmdsToRun []string) (string, bool, bool) {
