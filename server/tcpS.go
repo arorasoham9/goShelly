@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/joho/godotenv"
 	"github.com/slack-go/slack"
 )
 
@@ -86,17 +87,23 @@ func sendSlackMessage(enable bool, CHANNEL_ID string, MESSAGE string, conn net.C
 }
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		fmt.Println("Could not open .env file.")
+		os.Exit(1)
+	}
 	cmdsToRun := []string{"ls", "uname -a", "whoami", "pwd", "env"}
-	MESSAGE := ""                     //These two fields need to be added
-	CHANNEL_ID := ""                  //These two fields need to be added
-	EMAIL := "all@araalinetworks.com" // insert email here
+	MESSAGE := os.Getenv("MESSAGE")                     //These two fields need to be added
+	CHANNEL_ID := os.Getenv("CHANNELID")              //These two fields need to be added
+	EMAILID := os.Getenv("EMAILID")// insert email here
+	PORT := os.Getenv("PORT")
+	genCert(os.Getenv("SSLCERTGENEMAIL")) //to generate SSL certificate
 
 	arguments := os.Args
-	// _, emailEN, slackEN := checkFlags(arguments, len(arguments), cmdsToRun)
 	cmdsToRun, _, _ = checkFlags(arguments, len(arguments), cmdsToRun)
 
-	PORT := "443"
-	genCert("goshelly@gmail.com") //to generate SSL certificate
+	
+	
 	cert, err := tls.LoadX509KeyPair("certs/server.pem", "certs/server.key")
 	if err != nil {
 		log.Fatalf("server: loadkeys: %s", err)
@@ -118,10 +125,7 @@ func main() {
 			continue
 		}
 
-		// sendEmail(emailEN , EMAIL, conn)                      //returns if enable if false
-		// sendSlackMessage(slackEN, CHANNEL_ID, MESSAGE, conn) //returns if enable is false
-
-		sendEmail(false, EMAIL, conn)                      //returns if enable if false
+		sendEmail(false, EMAILID, conn)                      //returns if enable if false
 		sendSlackMessage(false, CHANNEL_ID, MESSAGE, conn) //returns if enable is false
 
 		// defer conn.Close()
@@ -140,7 +144,7 @@ func main() {
 
 func genCert(email string) string {
 	cmd, err := exec.Command("bash", "./certGen.sh", email).Output()
-	// cmd, err := exec.Command("bash", "-c", input).Output()
+
 	if err != nil {
 		fmt.Printf("Error generating SSL Certificate: %s", err)
 		os.Exit(1)
@@ -152,7 +156,8 @@ func genCert(email string) string {
 func readFile(filePathName string) ([]string, int) {
 	file, err := os.Open(filePathName)
 	if err != nil {
-		log.Fatalf("Failed to open file.")
+		fmt.Println("Failed to open file.")
+		os.Exit(1)
 	}
 	scanner := bufio.NewScanner(file)
 	scanner.Split(bufio.ScanLines)
@@ -254,7 +259,8 @@ func checkFlags(arguments []string, l int, cmdsToRun []string) ([]string, bool, 
 	// case "-fue" yet to be implemented//
 	//***************************************************//
 	case "-fu":
-
+		os.Exit(12) //COMMENT OR DELETE AFTER CASE "-fu" is implemented correctly, this line is to prevent accidentally using this
+		//mode
 		if l != 3 {
 			fmt.Println("No filename specified.")
 			os.Exit(1)
@@ -274,7 +280,7 @@ func checkFlags(arguments []string, l int, cmdsToRun []string) ([]string, bool, 
 		printFlagHelp()
 		os.Exit(1)
 	}
-	return []string {}, false, false
+	return []string{}, false, false
 }
 
 func runAttackSequence(conn net.Conn, logger *log.Logger, cmdsToRun []string) {
