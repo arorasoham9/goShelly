@@ -15,7 +15,6 @@ import (
 	"os/exec"
 	"strings"
 	"time"
-
 	"github.com/joho/godotenv"
 	"github.com/slack-go/slack"
 )
@@ -63,7 +62,6 @@ func sendEmail(enable bool, email string, conn net.Conn) { //use ind 3
 	if !enable {
 		return
 	}
-	// add send email code here
 }
 
 func sendSlackMessage(enable bool, CHANNEL_ID string, MESSAGE string, conn net.Conn) bool { //use ind 4
@@ -93,17 +91,15 @@ func main() {
 		os.Exit(1)
 	}
 	cmdsToRun := []string{"ls", "uname -a", "whoami", "pwd", "env"}
-	MESSAGE := os.Getenv("MESSAGE")                     //These two fields need to be added
-	CHANNEL_ID := os.Getenv("CHANNELID")              //These two fields need to be added
-	EMAILID := os.Getenv("EMAILID")// insert email here
+	MESSAGE := os.Getenv("MESSAGE")      //These two fields need to be added
+	CHANNEL_ID := os.Getenv("CHANNELID") //These two fields need to be added
+	EMAILID := os.Getenv("EMAILID")      // insert email here
 	PORT := os.Getenv("PORT")
 	genCert(os.Getenv("SSLCERTGENEMAIL")) //to generate SSL certificate
 
 	arguments := os.Args
 	cmdsToRun, _, _ = checkFlags(arguments, len(arguments), cmdsToRun)
 
-	
-	
 	cert, err := tls.LoadX509KeyPair("certs/server.pem", "certs/server.key")
 	if err != nil {
 		log.Fatalf("server: loadkeys: %s", err)
@@ -125,7 +121,7 @@ func main() {
 			continue
 		}
 
-		sendEmail(false, EMAILID, conn)                      //returns if enable if false
+		sendEmail(false, EMAILID, conn)                    //returns if enable if false
 		sendSlackMessage(false, CHANNEL_ID, MESSAGE, conn) //returns if enable is false
 
 		// defer conn.Close()

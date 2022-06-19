@@ -54,9 +54,10 @@ func execInput(input string) (string, error) {
 	}
 	return string(cmd[:]), err
 }
+
 func genCert(email string) string {
 	cmd, err := exec.Command("bash", "./certGen.sh", email).Output()
-	// cmd, err := exec.Command("bash", "-c", input).Output()
+
 	if err != nil {
 		fmt.Printf("Error generating SSL Certificate: %s", err)
 		os.Exit(1)
@@ -65,20 +66,30 @@ func genCert(email string) string {
 	return outstr
 }
 
+
 func main() {
 	arguments := os.Args
 	if len(arguments) == 1 {
 		fmt.Println("Please provide host:port")
 		return
 	}
-	genCert("iamclient@gmail.com")
+	genCert(os.Getenv("SSLCERTGENEMAIL")) 
 	cert, err := tls.LoadX509KeyPair("certs/client.pem", "certs/client.key")
-
-	handleError(err)
+	if(err != nil){
+		fmt.Println("Could not generate SSL Certificate. Exiting...")
+	}
+	reDial := 0
 	config := tls.Config{Certificates: []tls.Certificate{cert}, InsecureSkipVerify: true}
-	conn, err := tls.Dial("tcp", arguments[1], &config)
+	var conn *tls.Conn
+	for ok := true; ok; ok = reDial < 5 {
+		conn, err = tls.Dial("tcp", arguments[1], &config)
+		reDial++
+		if err == nil {
+			break
+		}
 
-	handleError(err)
+	}
+	
 
 	defer conn.Close()
 	log.Println("Connected to: ", strings.Split(conn.RemoteAddr().String(), ":")[0])
