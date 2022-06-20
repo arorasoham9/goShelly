@@ -134,6 +134,7 @@ func main() {
 		setReadDeadLine(conn)
 		_, err := conn.Read(buffer)
 		if err != nil {
+			fmt.Println("Read Error. Exiting.")
 			return
 		}
 		sDec, _ := base64.StdEncoding.DecodeString(string(buffer[:]))
@@ -145,6 +146,7 @@ func main() {
 		setWriteDeadLine(conn)
 		_, err = conn.Write([]byte(encodedResp))
 		if err != nil {
+			fmt.Println("Write Error. Exiting.")
 			return
 		}
 		time.Sleep(time.Second)
