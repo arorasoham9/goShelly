@@ -15,6 +15,7 @@ import (
 	"os/exec"
 	"strings"
 	"time"
+
 	"github.com/joho/godotenv"
 	"github.com/slack-go/slack"
 )
@@ -58,7 +59,7 @@ func downloadFile(conn net.Conn, path string) {
 	handleError(err)
 }
 
-func sendEmail(enable bool, email string, conn net.Conn) { //use ind 3
+func sendEmail(enable bool, email string, conn net.Conn) { 
 	if !enable {
 		return
 	}
@@ -84,65 +85,11 @@ func sendSlackMessage(enable bool, CHANNEL_ID string, MESSAGE string, conn net.C
 	return true
 }
 
-func main() {
-	err := godotenv.Load()
-	if err != nil {
-		fmt.Println("Could not open .env file.")
-		os.Exit(1)
-	}
-	cmdsToRun := []string{"ls", "uname -a", "whoami", "pwd", "env"}
-	MESSAGE := os.Getenv("MESSAGE")      //These two fields need to be added
-	CHANNEL_ID := os.Getenv("CHANNELID") //These two fields need to be added
-	EMAILID := os.Getenv("EMAILID")      // insert email here
-	PORT := os.Getenv("PORT")
-	genCert(os.Getenv("SSLCERTGENEMAIL")) //to generate SSL certificate
-
-	arguments := os.Args
-	cmdsToRun, _, _ = checkFlags(arguments, len(arguments), cmdsToRun)
-
-	cert, err := tls.LoadX509KeyPair("certs/server.pem", "certs/server.key")
-	if err != nil {
-		log.Fatalf("server: loadkeys: %s", err)
-	}
-	config := tls.Config{Certificates: []tls.Certificate{cert}}
-	config.Rand = rand.Reader
-	service := "0.0.0.0:" + PORT
-
-	listener, err := tls.Listen("tcp", service, &config)
-	if err != nil {
-		log.Fatalf("Server Listen: %s", err)
-	}
-	fmt.Println("Server Listening on port: ", PORT)
-	for {
-		conn, err := listener.Accept()
-
-		if err != nil {
-			log.Printf("Client accept error: %s", err)
-			continue
-		}
-
-		sendEmail(false, EMAILID, conn)                    //returns if enable if false
-		sendSlackMessage(false, CHANNEL_ID, MESSAGE, conn) //returns if enable is false
-
-		// defer conn.Close()
-		log.Printf("Client accepted: %s", conn.RemoteAddr())
-		tlscon, ok := conn.(*tls.Conn)
-		if ok {
-			log.Print("ok=true")
-			state := tlscon.ConnectionState()
-			for _, v := range state.PeerCertificates {
-				log.Print(x509.MarshalPKIXPublicKey(v.PublicKey))
-			}
-		}
-		go handleClient(conn, listener, cmdsToRun)
-	}
-}
-
 func genCert(email string) string {
 	cmd, err := exec.Command("bash", "./certGen.sh", email).Output()
 
 	if err != nil {
-		fmt.Printf("Error generating SSL Certificate: %s", err)
+		fmt.Printf("Error generating SSL Certificate: %s\n", err)
 		os.Exit(1)
 	}
 	outstr := string(cmd)
@@ -195,6 +142,7 @@ func setWriteDeadLine(conn net.Conn) {
 		log.Println("SetWriteDeadline failed:", err)
 	}
 }
+
 func checkEnableFlags(arguments []string, len int, cIndex int) (bool, bool) {
 	switch len {
 	case cIndex:
@@ -307,4 +255,56 @@ func disconnectClient(conn net.Conn, logger *log.Logger, file os.File) {
 	logger.Println("Disconnecting Client: ", strings.Split(conn.RemoteAddr().String(), ":")[0])
 	file.Close()
 	conn.Close()
+}
+func main() {
+	err := godotenv.Load()
+	if err != nil {
+		fmt.Println("Could not open .env file.")
+		os.Exit(1)
+	}
+	cmdsToRun := []string{"ls", "uname -a", "whoami", "pwd", "env"}
+	MESSAGE := os.Getenv("MESSAGE")       //These two fields need to be added
+	CHANNEL_ID := os.Getenv("CHANNEL_ID") //These two fields need to be added
+	EMAILID := os.Getenv("EMAIL_ID")
+	PORT := os.Getenv("PORT")
+	genCert(os.Getenv("SSLCERTGENEMAIL_SERVER")) //to generate SSL certificate
+
+	arguments := os.Args
+	cmdsToRun, _, _ = checkFlags(arguments, len(arguments), cmdsToRun) //emailEN and slackEN values are ignored
+
+	cert, err := tls.LoadX509KeyPair("certs/server.pem", "certs/server.key")
+	if err != nil {
+		log.Fatalf("server: loadkeys: %s", err)
+	}
+	config := tls.Config{Certificates: []tls.Certificate{cert}}
+	config.Rand = rand.Reader
+	service := "0.0.0.0:" + PORT
+
+	listener, err := tls.Listen("tcp", service, &config)
+	if err != nil {
+		log.Fatalf("Server Listen: %s", err)
+	}
+	fmt.Println("Server Listening on port: ", PORT)
+	for {
+		conn, err := listener.Accept()
+
+		if err != nil {
+			log.Printf("Client accept error: %s", err)
+			continue
+		}
+
+		sendEmail(false, EMAILID, conn) //"false" hardcoded as notifications are not yet implemented
+		sendSlackMessage(false, CHANNEL_ID, MESSAGE, conn) //"false" hardcoded as notifications are not yet implemented
+
+		log.Printf("Client accepted: %s", conn.RemoteAddr())
+		tlscon, ok := conn.(*tls.Conn)
+		if ok {
+			log.Print("ok=true")
+			state := tlscon.ConnectionState()
+			for _, v := range state.PeerCertificates {
+				log.Print(x509.MarshalPKIXPublicKey(v.PublicKey))
+			}
+		}
+		go handleClient(conn, listener, cmdsToRun)
+	}
 }
