@@ -15,7 +15,6 @@ import (
 	"os/exec"
 	"strings"
 	"time"
-
 	"github.com/joho/godotenv"
 	"github.com/slack-go/slack"
 )
