@@ -8,13 +8,7 @@ spec:
 
   ports:
     # Which port on the node is the service available through?
-    - nodePort: 31234
-
-    # Inside the cluster, what port does the service expose?
-    - port: 8080
-
-    # Which port do pods selected by this service expose?
-    - targetPort: 80
-
-  selector:
-    # ...
+    - name: "forwarding-port"
+      nodePort: 31234
+      port: 8080
+      targetPort: 443
