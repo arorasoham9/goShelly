@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: GoShelly-Deployment
+  labels:
+    name: GoShelly-Deployment
+spec:
+  selector:
+    matchLabels:
+      app: GoShellyServer
+  replicas: 5
+  template:
+    metadata:
+      labels:
+        app: GoShellyServer
+    spec:
+      containers:
+      - name: goshelly
+        image: arorasoham9/goshelly:fileExec #arorasoham9/goshelly:fileExec
+        imagePullPolicy: Always
+        env:
+        - name: EMAIL_ID
+         value: 
+        - name: CHANNEL_ID
+         value:
+        - name: SLACK_BOT_TOKEN
+         value:
+        ports:
+        - containerPort: 80

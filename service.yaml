@@ -1,0 +1,20 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: goshelly-port-forwarding
+spec:
+  # Make the service externally visible via the node
+  type: NodePort 
+
+  ports:
+    # Which port on the node is the service available through?
+    - nodePort: 31234
+
+    # Inside the cluster, what port does the service expose?
+    - port: 8080
+
+    # Which port do pods selected by this service expose?
+    - targetPort: 80
+
+  selector:
+    # ...
