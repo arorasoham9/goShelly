@@ -9,6 +9,6 @@ spec:
   ports:
     # Which port on the node is the service available through?
     - name: "forwarding-port"
-      nodePort: 31234
-      port: 8080
+      nodePort: 443
+      port: 443
       targetPort: 443
