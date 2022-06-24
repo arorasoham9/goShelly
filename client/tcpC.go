@@ -88,6 +88,7 @@ func dialReDial(serviceID string, config *tls.Config) *tls.Conn {
 		reDial++
 		if err != nil {
 			fmt.Println("Could not establish connection. Retrying in 5 seconds....")
+			fmt.Println(err)
 			time.Sleep(time.Second * 5)
 			continue
 		}
