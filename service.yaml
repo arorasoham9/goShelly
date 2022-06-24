@@ -10,5 +10,5 @@ spec:
     # Which port on the node is the service available through?
     - name: "forwarding-port"
       # nodePort: 32123
-      port: 443
+      port: 8080
       targetPort: 443
