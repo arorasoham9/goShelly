@@ -4,11 +4,11 @@ metadata:
   name: goshelly-port-forwarding
 spec:
   # Make the service externally visible via the node
-  type: NodePort 
+  type: LoadBalancer
 
   ports:
     # Which port on the node is the service available through?
     - name: "forwarding-port"
-      nodePort: 32123
+      # nodePort: 32123
       port: 443
       targetPort: 443
