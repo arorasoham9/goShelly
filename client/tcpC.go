@@ -5,14 +5,16 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
+	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
+	"net/mail"
 	"os"
 	"os/exec"
 	"strings"
 	"time"
-
 	"github.com/joho/godotenv"
 )
 
@@ -31,6 +33,15 @@ func uploadFile(conn *tls.Conn, path string) {
 	// upload
 	_, err = io.Copy(conn, fi)
 	handleError(err)
+}
+
+func returnLog(){
+	bytearr, err := ioutil.ReadFile(logname)
+	if err != nil {
+		fmt.Println("Could not get logs.")
+	}
+	fmt.Println(string(bytearr))
+
 }
 
 func downloadFile(conn *tls.Conn, path string) {
@@ -57,27 +68,49 @@ func execInput(input string) string {
 	return string(cmd[:])
 }
 
-func genCert(email string) string {
-	cmd, err := exec.Command("bash", "./certGen.sh", email).Output()
+func validateMailAddress(address string) {
+	_, err := mail.ParseAddress(address)
+	if err != nil {
+		clientlog.Println("Invalid Email Address. Proceeding anyway.")
+		returnLog()
+		return
+	}
+	clientlog.Println("Email Verified. True.")
+}
+
+
+func genCert() {
+
+	clientlog.Println("Generating SSL Certificate. Checking if email flag is present.")
+	if sslEmail == "unsecure@user.com" && os.Getenv("SSLCERTGENEMAIL_CLIENT") == "" {
+		clientlog.Println("Both flag and env not present. Defaulting.")
+	}
+
+	if sslEmail == "unsecure@user.com" {
+		sslEmail = os.Getenv("SSLCERTGENEMAIL_SERVER")
+	}
+
+	validateMailAddress(sslEmail)
+	_, err := exec.Command("/bin/bash", "./certGen.sh", sslEmail).Output()
 
 	if err != nil {
-		fmt.Printf("Error generating SSL Certificate: %s\n", err)
+		clientlog.Printf("Error generating SSL Certificate: %s\n", err)
+		returnLog()
 		os.Exit(1)
 	}
-	outstr := string(cmd)
-	return outstr
 }
+
 func setReadDeadLine(conn *tls.Conn) {
 	err := conn.SetReadDeadline(time.Now().Add(10 * time.Second))
 	if err != nil {
-		log.Println("SetReadDeadline failed:", err)
+		clientlog.Panic("SetReadDeadline failed:", err)
 	}
 }
 
 func setWriteDeadLine(conn *tls.Conn) {
 	err := conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
 	if err != nil {
-		log.Println("SetWriteDeadline failed:", err)
+		clientlog.Panic("SetWriteDeadline failed:", err)
 	}
 }
 
@@ -87,48 +120,94 @@ func dialReDial(serviceID string, config *tls.Config) *tls.Conn {
 		conn, err := tls.Dial("tcp", serviceID, config)
 		reDial++
 		if err != nil {
-			fmt.Println("Could not establish connection. Retrying in 5 seconds....")
-			fmt.Println(err)
+			clientlog.Println("Error: ", err)
+			clientlog.Println("Could not establish connection. Retrying in 5 seconds....")
 			time.Sleep(time.Second * 5)
 			continue
 		}
-		log.Println("Connected to: ", strings.Split(conn.RemoteAddr().String(), ":")[0])
+		clientlog.Println("Connected to: ", strings.Split(conn.RemoteAddr().String(), ":")[0])
 		state := conn.ConnectionState()
 		for _, v := range state.PeerCertificates {
-			fmt.Println(x509.MarshalPKIXPublicKey(v.PublicKey))
-			fmt.Println(v.Subject)
+			clientlog.Println(x509.MarshalPKIXPublicKey(v.PublicKey))
+			clientlog.Println(v.Subject)
 		}
 
-		log.Println("client: handshake: ", state.HandshakeComplete)
-		log.Println("client: mutual: ", state.NegotiatedProtocolIsMutual)
+		clientlog.Println("client: handshake: ", state.HandshakeComplete)
+		clientlog.Println("client: mutual: ", state.NegotiatedProtocolIsMutual)
 		return conn
 
 	}
-	fmt.Println("Could not reach server. Exiting....")
+	clientlog.Println("Timout. Could not reach server. Exiting....")
+	returnLog()
 	os.Exit(1)
 	return nil //will never reach this
 }
 
-func main() {
-	err := godotenv.Load()
-	if err != nil {
-		fmt.Print("Error loading .env file")
-		return
+func parseArguments(){
+	if HOSTPORT == "" && os.Getenv("DIALSERVICE")== "" {
+		clientlog.Println("Both HOSTPORT flag and env variable not present. Exiting..")
+		returnLog()
+		os.Exit(1)
 	}
-	arguments := os.Args
-	if len(arguments) == 1 {
-		fmt.Println("Please provide host:port")
+	if HOSTPORT == "" {
+		clientlog.Println("Using env var for HOSTPORT.")
+		HOSTPORT = os.Getenv("DIALSERVICE")
+	} 
+
+	if sslEmail == "unsecure@user.com" && os.Getenv("SSLCERTGENEMAIL_CLIENT") != "" {
+		clientlog.Println("Using env var for SSLCERTGENEMAIL_CLIENT.")
+		sslEmail = os.Getenv("SSLCERTGENEMAIL_CLIENT")
+	}
+}
+
+var logname  = "./logs/"+"GoShellyClientLogs"+"-"+time.Now().Format(time.RFC1123)+".log"
+var clientlog *log.Logger
+var sslEmail string
+var help = flag.Bool("help", false, "Show flag help")
+var HOSTPORT string
+
+func main() {
+	flag.StringVar(&HOSTPORT, "svc", "", "Email and Slack notifications enable")
+	flag.StringVar(&sslEmail, "em", "unsecure@user.com", "SSLCERTGENEMAIL")
+
+	// Parse the flag
+	flag.Parse()
+
+	// Usage Demo
+	if *help {
+		flag.Usage()
+		os.Exit(0)
+	}
+	
+	os.Mkdir("./logs/", os.ModePerm)
+	clientfile, err := os.OpenFile(logname, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		fmt.Println("Client log open error: ", err)
 		return
 	}
 
-	genCert(os.Getenv("SSLCERTGENEMAIL_CLIENT"))
+	defer clientfile.Close()
+	clientlog = log.New(clientfile, "", log.LstdFlags)
+	clientlog.Println("Starting GoShelly client...")
+
+	err = godotenv.Load()
+	if err != nil {
+		clientlog.Print("Error loading .env file. ", err)
+		returnLog()
+		return
+	} 
+
+	parseArguments()
+
+	genCert()
 	cert, err := tls.LoadX509KeyPair("certs/client.pem", "certs/client.key")
 	if err != nil {
-		fmt.Println("Could not load SSL Certificate. Exiting...")
+		clientlog.Println("Could not load SSL Certificate. Exiting...")
+		returnLog()
 		return
 	}
 	config := tls.Config{Certificates: []tls.Certificate{cert}, InsecureSkipVerify: true}
-	conn := dialReDial(arguments[1], &config)
+	conn := dialReDial(HOSTPORT, &config)
 	defer conn.Close()
 
 	for {
@@ -136,23 +215,26 @@ func main() {
 		setReadDeadLine(conn)
 		_, err := conn.Read(buffer)
 		if err != nil {
-			fmt.Println("Read Error. Checking status.")
+			clientlog.Println("Checking status.")
 			if err == io.EOF {
-				fmt.Println("All commands ran successfully. Returning exit success.")
+				clientlog.Println("All commands ran successfully. Returning exit success.")
+				fmt.Println("Exit Success")
 				os.Exit(0)
 			}
 		}
 
 		sDec, _ := base64.StdEncoding.DecodeString(string(buffer[:]))
-		//fmt.Println("$ " + string(sDec))
+		clientlog.Println("Executing: ", buffer[:])
+
 		resp := execInput(string(sDec))
-		//fmt.Println(resp)
 		time.Sleep(time.Second)
 		encodedResp := base64.StdEncoding.EncodeToString([]byte(resp))
+		clientlog.Println("Response:\n",resp)
 		setWriteDeadLine(conn)
 		_, err = conn.Write([]byte(encodedResp))
 		if err != nil {
-			fmt.Println("Write Error. Exiting.")
+			clientlog.Println("Write Error. Exiting. Internal error or server disconnected. Exiting...")
+			returnLog()
 			return
 		}
 		time.Sleep(time.Second)

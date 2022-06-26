@@ -51,12 +51,14 @@ func downloadFile(conn net.Conn, path string) {
 	_, err = io.Copy(fo, conn)
 	handleError(err)
 }
-func validateMailAddress(address string) bool {
+
+func validateMailAddress(address string) {
 	_, err := mail.ParseAddress(address)
 	if err != nil {
 		servlog.Println("Invalid Email Address. Proceeding anyway.")
+		return
 	}
-	return true
+	servlog.Println("Email Verified. True.")
 }
 
 func sendEmail(conn net.Conn) {
@@ -71,11 +73,20 @@ func sendSlackMessage(conn net.Conn) {
 	}
 }
 
+
 func genCert() {
 
-	servlog.Println("Generating SSL Certificate")
-	validateMailAddress(os.Getenv("SSLCERTGENEMAIL_SERVER"))
-	_, err := exec.Command("/bin/bash", "./certGen.sh", os.Getenv("SSLCERTGENEMAIL_SERVER")).Output()
+	servlog.Println("Generating SSL Certificate. Checking if email flag is present.")
+	if sslEmail == "unsecure@admin.com" && os.Getenv("SSLCERTGENEMAIL_SERVER") == "" {
+		servlog.Println("Both flag and env not present. Defaulting.")
+	}
+
+	if sslEmail == "unsecure@admin.com" {
+		sslEmail = os.Getenv("SSLCERTGENEMAIL_SERVER")
+	}
+
+	validateMailAddress(sslEmail)
+	_, err := exec.Command("/bin/bash", "./certGen.sh", sslEmail).Output()
 
 	if err != nil {
 		servlog.Printf("Error generating SSL Certificate: %s\n", err)
@@ -257,11 +268,13 @@ var instrfile string
 var mode string
 var l net.Listener
 var notEN string
+var sslEmail string
 
 func main() {
 	flag.StringVar(&notEN, "not", "", "Email and Slack notifications enable")
 	flag.StringVar(&instrfile, "f", "instr.*", "Instructions filepath/filename")
 	flag.StringVar(&mode, "mode", "a", "mode")
+	flag.StringVar(&sslEmail, "em", "unsecure@admin.com", "SSLCERTGENEMAIL")
 
 	// Parse the flag
 	flag.Parse()
